@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Wrapper script to run DB Migration Manager in Docker
-# Works on Linux, macOS, and Windows (Git Bash/WSL)
+# For Windows (Git Bash/MSYS2)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IMAGE_NAME="database-migration-manager"
@@ -10,7 +10,7 @@ CONTAINER_NAME="database-migration-manager"
 # Load utility functions
 source "$SCRIPT_DIR/lib/log.lib.sh"
 
-log_header "DB Migration Manager - Docker Mode"
+log_header "DB Migration Manager - Docker Mode (Windows)"
 echo ""
 
 # Check if Docker is installed
@@ -36,30 +36,44 @@ fi
 log_info "Starting DB Migration Manager..."
 echo ""
 
-# Create dumps directory if it doesn't exist
-ensure_dir "$SCRIPT_DIR/dumps"
-
-# Detect OS and set Docker socket path
-DOCKER_SOCKET="/var/run/docker.sock"
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-    # Windows (Git Bash)
-    DOCKER_SOCKET="//var/run/docker.sock"
-    log_warning "Windows detected: Docker socket mount may not work in all environments"
+# IMPORTANT: Create .config file BEFORE mounting
+# If it doesn't exist, Docker will create a DIRECTORY instead of a file
+if [ ! -f "$SCRIPT_DIR/.config" ]; then
+    log_info "Creating .config file..."
+    touch "$SCRIPT_DIR/.config"
+    chmod 644 "$SCRIPT_DIR/.config"
 fi
+
+# Verify .config is a file, not a directory
+if [ -d "$SCRIPT_DIR/.config" ]; then
+    log_error ".config is a directory! Removing and recreating as file..."
+    rm -rf "$SCRIPT_DIR/.config"
+    touch "$SCRIPT_DIR/.config"
+    chmod 644 "$SCRIPT_DIR/.config"
+fi
+
+# Disable path conversion for Docker volume mounts on Windows (Git Bash)
+# This prevents /var from being converted to C:\Program Files\Git\var
+export MSYS_NO_PATHCONV=1
+
+# Convert to absolute path
+CONFIG_PATH="$(cd "$(dirname "$SCRIPT_DIR/.config")" && pwd)/$(basename "$SCRIPT_DIR/.config")"
+
+log_info "Mounting volumes:"
+log_info "  Config: $CONFIG_PATH"
+echo ""
 
 # Run the container with:
 # - Interactive terminal with UTF-8 support
 # - Docker socket mounted (for Docker-in-Docker)
 # - Config volume for persistent configuration
-# - Dumps volume for database files
 # - Auto-remove after exit
 docker run -it --rm \
     --name "$CONTAINER_NAME" \
     -e LANG=C.UTF-8 \
     -e LC_ALL=C.UTF-8 \
-    -v "$DOCKER_SOCKET:/var/run/docker.sock" \
-    -v "$SCRIPT_DIR/.config:/app/.config" \
-    -v "$SCRIPT_DIR/dumps:/dumps" \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$CONFIG_PATH:/app/.config" \
     --network host \
     "$IMAGE_NAME"
 
