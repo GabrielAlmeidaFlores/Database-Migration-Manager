@@ -27,9 +27,9 @@ Professional database migration tool with Docker integration, interactive TUI, a
 - **Disk Space**: Sufficient space for database dumps
 
 ### Platform Support
-- **Linux**: x86_64 (bundled dialog included)
-- **Windows**: Via Docker mode with Git Bash or WSL
-- **macOS**: Via Docker mode
+- **Linux**: x86_64 (bundled dialog included) - supports both Direct and Docker modes
+- **Windows**: Direct mode only (requires Git Bash or WSL + Docker Desktop)
+- **macOS**: Direct mode only (requires Docker Desktop + system dialog)
 
 ## 📂 Project Structure
 
@@ -71,18 +71,36 @@ chmod +x db-manager.sh run-docker.sh operation/*.operation.sh
 ./db-manager.sh
 ```
 
-### Docker Mode (All Platforms)
+### Docker Mode (Linux Only)
 
 ```bash
 # Build and run in Docker
 ./run-docker.sh
 ```
 
+**Note**: Docker mode requires `/var/run/docker.sock` access and works reliably only on **Linux**. For Windows and macOS, use **Direct Mode** instead (see below).
+
 Docker mode automatically:
 - Builds the `database-migration-manager` image
 - Mounts Docker socket for container operations
 - Mounts `.config` for persistent settings
 - Creates `dumps/` directory for exports
+
+### Direct Mode (Windows/macOS)
+
+On Windows (Git Bash) or macOS, run directly:
+
+```bash
+# Make script executable
+chmod +x db-manager.sh
+
+# Run directly
+./db-manager.sh
+```
+
+**Requirements**:
+- Docker Desktop must be running
+- System dialog may need to be installed (`brew install dialog` on macOS)
 
 ## 📖 Usage Guide
 
@@ -330,16 +348,22 @@ docker network rm db-migration-net
 
 ### Running on Windows
 
+**Recommended: Direct Mode**
+
 ```bash
 # Using Git Bash
 cd Database-Migration-Manager
-./run-docker.sh
+chmod +x db-manager.sh operation/*.operation.sh
+./db-manager.sh
 
 # Or using WSL
 wsl
 cd /mnt/c/path/to/Database-Migration-Manager
-./run-docker.sh
+chmod +x db-manager.sh operation/*.operation.sh
+./db-manager.sh
 ```
+
+**Note**: Docker mode (`run-docker.sh`) is **not recommended** on Windows due to Docker socket mounting limitations. Use direct mode instead.
 
 ### Common Windows Issues
 
