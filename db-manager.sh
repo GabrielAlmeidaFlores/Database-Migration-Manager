@@ -10,6 +10,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/.config"
 DOCKER_NETWORK="database-migration-network"
 
+# Load utility functions
+source "$SCRIPT_DIR/lib/log.lib.sh"
+
 # Use local dialog binary if available and compatible, otherwise use system dialog
 LOCAL_DIALOG="$SCRIPT_DIR/dependencies/dialog/dialog"
 if [ -x "$LOCAL_DIALOG" ] && "$LOCAL_DIALOG" --version &>/dev/null; then
@@ -23,63 +26,8 @@ else
     USE_LOCAL_DIALOG=false
 fi
 
-# Function to clean up terminal on exit
-cleanup() {
-    clear
-    tput sgr0  # Reset all terminal attributes
-    echo ""
-}
-
 # Set trap to clean up on exit
-trap cleanup EXIT
-
-# Cores para output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
-
-# Funções de echo customizadas
-log_info() {
-    echo -e "${BLUE}ℹ️  $*${NC}"
-}
-
-log_success() {
-    echo -e "${GREEN}✅ $*${NC}"
-}
-
-log_error() {
-    echo -e "${RED}❌ $*${NC}"
-}
-
-log_warning() {
-    echo -e "${YELLOW}⚠️  $*${NC}"
-}
-
-log_step() {
-    echo -e "${CYAN}🔹 $*${NC}"
-}
-
-log_progress() {
-    echo -e "${MAGENTA}⏳ $*${NC}"
-}
-
-log_header() {
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}  $*${NC}"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-}
-
-# Function to create Docker network if it doesn't exist
-ensure_docker_network() {
-    if ! docker network inspect "$DOCKER_NETWORK" &>/dev/null; then
-        log_info "📡 Creating Docker network: $DOCKER_NETWORK"
-        docker network create "$DOCKER_NETWORK"
-    fi
-}
+trap cleanup_terminal EXIT
 
 # Function to check if dialog is available
 check_dialog() {
@@ -106,14 +54,7 @@ check_dialog() {
     fi
 }
 
-# Function to check if docker is installed
-check_docker() {
-    if ! command -v docker &>/dev/null; then
-        log_error "'docker' is not installed."
-        log_warning "Visit: https://docs.docker.com/get-docker/"
-        exit 1
-    fi
-}
+# Note: check_docker() is now provided by lib/utils.sh
 
 # Function to save configuration
 save_config() {

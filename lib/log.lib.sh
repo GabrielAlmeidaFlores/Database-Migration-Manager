@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# =============================================================================
+# Database Migration Manager - Utility Functions
+# =============================================================================
+# This file contains reusable functions for logging and common operations
+# Used by: db-manager.sh, run-docker.sh, and other scripts
+# =============================================================================
+
+# Color definitions
+export RED='\033[0;31m'
+export GREEN='\033[0;32m'
+export YELLOW='\033[1;33m'
+export BLUE='\033[0;34m'
+export CYAN='\033[0;36m'
+export MAGENTA='\033[0;35m'
+export NC='\033[0m' # No Color
+
+# =============================================================================
+# Logging Functions
+# =============================================================================
+
+# Info message (blue)
+log_info() {
+    echo -e "${BLUE}ℹ️  $*${NC}"
+}
+
+# Success message (green)
+log_success() {
+    echo -e "${GREEN}✅ $*${NC}"
+}
+
+# Error message (red)
+log_error() {
+    echo -e "${RED}❌ $*${NC}"
+}
+
+# Warning message (yellow)
+log_warning() {
+    echo -e "${YELLOW}⚠️  $*${NC}"
+}
+
+# Step message (cyan)
+log_step() {
+    echo -e "${CYAN}🔹 $*${NC}"
+}
+
+# Progress message (magenta)
+log_progress() {
+    echo -e "${MAGENTA}⏳ $*${NC}"
+}
+
+# Header message (blue with separator)
+log_header() {
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}  $*${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+# =============================================================================
+# Terminal Functions
+# =============================================================================
+
+# Clean up terminal on exit
+cleanup_terminal() {
+    clear
+    tput sgr0  # Reset all terminal attributes
+    echo ""
+}
+
+# =============================================================================
+# Validation Functions
+# =============================================================================
+
+# Check if command exists
+command_exists() {
+    command -v "$1" &> /dev/null
+}
+
+# Check if Docker is installed
+check_docker() {
+    if ! command_exists docker; then
+        log_error "Docker is not installed!"
+        log_warning "Visit: https://docs.docker.com/get-docker/"
+        return 1
+    fi
+    return 0
+}
+
+# Check if Docker is running
+check_docker_running() {
+    if ! docker info &> /dev/null; then
+        log_error "Docker is not running!"
+        log_warning "Please start Docker and try again."
+        return 1
+    fi
+    return 0
+}
+
+# =============================================================================
+# File Functions
+# =============================================================================
+
+# Get script directory (works even when sourced)
+get_script_dir() {
+    local source="${BASH_SOURCE[0]}"
+    while [ -h "$source" ]; do
+        local dir="$(cd -P "$(dirname "$source")" && pwd)"
+        source="$(readlink "$source")"
+        [[ $source != /* ]] && source="$dir/$source"
+    done
+    cd -P "$(dirname "$source")" && pwd
+}
+
+# Create directory if it doesn't exist
+ensure_dir() {
+    local dir="$1"
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir"
+        log_step "Created directory: $dir"
+    fi
+}
+
+# =============================================================================
+# Docker Functions
+# =============================================================================
+
+# Create Docker network if it doesn't exist
+ensure_docker_network() {
+    local network_name="$1"
+    if ! docker network inspect "$network_name" &>/dev/null; then
+        log_info "Creating Docker network: $network_name"
+        docker network create "$network_name"
+    fi
+}
+
+# Remove Docker image if exists
+remove_docker_image() {
+    local image_name="$1"
+    if docker image inspect "$image_name" &> /dev/null; then
+        log_step "Removing old image: $image_name"
+        docker rmi "$image_name" 2>/dev/null
+    fi
+}
+
+# Check if Docker image exists
+docker_image_exists() {
+    local image_name="$1"
+    docker image inspect "$image_name" &> /dev/null
+}
+
+# =============================================================================
+# String Functions
+# =============================================================================
+
+# Trim whitespace from string
+trim() {
+    local var="$*"
+    var="${var#"${var%%[![:space:]]*}"}"
+    var="${var%"${var##*[![:space:]]}"}"
+    echo -n "$var"
+}
+
+# Convert string to lowercase
+to_lower() {
+    echo "$*" | tr '[:upper:]' '[:lower:]'
+}
+
+# Convert string to uppercase
+to_upper() {
+    echo "$*" | tr '[:lower:]' '[:upper:]'
+}
+
+# =============================================================================
+# Confirmation Functions
+# =============================================================================
+
+# Ask yes/no question (returns 0 for yes, 1 for no)
+confirm() {
+    local message="$1"
+    local default="${2:-n}"
+    
+    if [ "$default" = "y" ] || [ "$default" = "Y" ]; then
+        local prompt="[Y/n]"
+        local default_response="y"
+    else
+        local prompt="[y/N]"
+        local default_response="n"
+    fi
+    
+    read -p "$message $prompt " response
+    response=$(to_lower "${response:-$default_response}")
+    
+    [ "$response" = "y" ] || [ "$response" = "yes" ]
+}
+
+# =============================================================================
+# Export all functions
+# =============================================================================
+
+export -f log_info
+export -f log_success
+export -f log_error
+export -f log_warning
+export -f log_step
+export -f log_progress
+export -f log_header
+export -f cleanup_terminal
+export -f command_exists
+export -f check_docker
+export -f check_docker_running
+export -f get_script_dir
+export -f ensure_dir
+export -f ensure_docker_network
+export -f remove_docker_image
+export -f docker_image_exists
+export -f trim
+export -f to_lower
+export -f to_upper
+export -f confirm

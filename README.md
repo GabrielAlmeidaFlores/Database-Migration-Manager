@@ -311,6 +311,9 @@ Database-Migration-Manager/
 ├── README.md                  # This file
 ├── CHANGELOG.md              # Version history
 │
+├── lib/                      # Shared library functions ⭐ NEW
+│   └── log.lib.sh           # Utility functions (logging, Docker, etc.)
+│
 ├── dependencies/             # Bundled dependencies
 │   └── dialog/              # Dialog binary (included!)
 │       └── dialog           # Dialog executable
