@@ -24,8 +24,8 @@ log_warning() { echo -e "${YELLOW}⚠️  $*${NC}"; }
 log_progress() { echo -e "${YELLOW}⏳ $*${NC}"; }
 
 if [ ! -f "$DUMP_FILE" ]; then
-    log_error "Backup file not found: $DUMP_FILE"
-    exit 1
+    log_error "Backup file not found: $DUMP_FILE"    log_info "Note: When running in Docker mode, DUMP_DIR must be an absolute path on the HOST machine"
+    log_info "Example: /home/user/Downloads (not /root/Downloads inside container)"    exit 1
 fi
 
 log_progress "Restoring $DST_DB on $DST_HOST:$DST_PORT..."
@@ -46,7 +46,7 @@ docker run --rm \
     -S "$DST_HOST,$DST_PORT" \
     -U "$DST_USER" \
     -P "$DST_PASS" \
-    -Q "RESTORE DATABASE [$DST_DB] FROM DISK = N'$BACKUP_PATH' WITH REPLACE, STATS = 10"
+    -Q "RESTORE DATABASE [$DST_DB] FROM DISK = N'$BACKUP_PATH' WITH REPLACE, STATS = 1"
 
 if [ $? -ne 0 ]; then
     log_error "Restore failed."

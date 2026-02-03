@@ -24,6 +24,8 @@ log_progress() { echo -e "${YELLOW}⏳ $*${NC}"; }
 
 if [ ! -f "$DUMP_FILE" ]; then
     log_error "Dump file not found: $DUMP_FILE"
+    log_info "Note: When running in Docker mode, DUMP_DIR must be an absolute path on the HOST machine"
+    log_info "Example: /home/user/Downloads (not /root/Downloads inside container)"
     exit 1
 fi
 
@@ -52,6 +54,7 @@ docker run --rm \
     -h "$DST_HOST" \
     -P "$DST_PORT" \
     -u "$DST_USER" \
+    --verbose \
     "$DST_DB" </backup/dump.sql
 
 if [ $? -ne 0 ]; then
