@@ -1,5 +1,7 @@
 #!/bin/bash
 
+VERSION="1.0.0"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/.config"
 DOCKER_NETWORK="database-migration-network"
@@ -63,7 +65,6 @@ DST_PORT=$DST_PORT
 DST_USER=$DST_USER
 DST_PASS=$DST_PASS
 DST_DB=$DST_DB
-DUMP_DIR=$DUMP_DIR
 EOF
     log_success "Configuration saved to $CONFIG_FILE"
 }
@@ -71,10 +72,7 @@ EOF
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
-        if [ "$DUMP_DIR" != "/dumps" ]; then
-            DUMP_DIR="/dumps"
-            save_config
-        fi
+        DUMP_DIR="/dumps"
         return 0
     fi
     return 1
@@ -82,7 +80,7 @@ load_config() {
 
 main_menu() {
     while true; do
-        CHOICE=$($DIALOG --clear --backtitle "DB Migration Manager with Docker" \
+        CHOICE=$($DIALOG --clear --backtitle "DB Migration Manager v$VERSION" \
             --title "Main Menu" \
             --menu "Choose an operation:" 15 60 6 \
             1 "🗄️  Configure Database" \
@@ -115,24 +113,22 @@ configure_database() {
         
         CONFIG_MENU=$($DIALOG --clear --backtitle "DB Migration Manager" \
             --title "Configuration" \
-            --menu "What do you want to configure?" 16 65 7 \
+            --menu "What do you want to configure?" 15 65 6 \
             1 "🗄️  Database Type (Current: ${DB_TYPE:-Not configured})" \
             2 "📤 SOURCE Configuration" \
             3 "📥 DESTINATION Configuration" \
-            4 "💾 Dump Directory (Auto-named files)" \
-            5 "✅ Complete Setup (Step by Step)" \
-            6 "👁️  View Current Configuration" \
-            7 "🔙 Back to Main Menu" \
+            4 "✅ Complete Setup (Step by Step)" \
+            5 "👁️  View Current Configuration" \
+            6 "🔙 Back to Main Menu" \
             3>&1 1>&2 2>&3)
         
         case $CONFIG_MENU in
         1) configure_db_type ;;
         2) configure_source ;;
         3) configure_destination ;;
-        4) configure_dump_file ;;
-        5) configure_full ;;
-        6) view_config ;;
-        7) return ;;
+        4) configure_full ;;
+        5) view_config ;;
+        6) return ;;
         *) 
             return
             ;;
@@ -224,15 +220,6 @@ configure_destination() {
         --msgbox "DESTINATION configuration saved!\n\nHost: $DST_HOST:$DST_PORT\nDB: $DST_DB" 9 50
 }
 
-configure_dump_file() {
-    $DIALOG --clear --backtitle "DB Migration Manager" \
-        --title "Dump Directory" \
-        --msgbox "Dump directory is fixed to: /dumps\n\nThis is the Docker volume where all dumps are stored.\nFiles are auto-named: <db-engine>-<timestamp>.txt" 10 70
-    
-    DUMP_DIR="/dumps"
-    save_config
-}
-
 configure_full() {
     DB_TYPE=$($DIALOG --clear --backtitle "DB Migration Manager" \
         --title "[1/4] Database Type" \
@@ -297,22 +284,11 @@ configure_full() {
     DST_PASS="${arr[3]}"
     DST_DB="${arr[4]}"
 
-    DUMP_DIR=$($DIALOG --clear --backtitle "DB Migration Manager" \
-        --title "[4/4] Dump Directory" \
-        --inputbox "Directory for dump files:\n\nFiles will be auto-named:\n<db-engine>-<timestamp>.txt" 12 70 "${DUMP_DIR:-$HOME/Downloads}" \
-        3>&1 1>&2 2>&3)
-
-    if [ $? -ne 0 ]; then
-        return
-    fi
-    
-    mkdir -p "$DUMP_DIR" 2>/dev/null
-
     save_config
 
     $DIALOG --clear --backtitle "DB Migration Manager" \
         --title "✅ Complete Setup" \
-        --msgbox "All settings saved!\n\nType: $DB_TYPE\n\nSource: $SRC_HOST:$SRC_PORT/$SRC_DB\nDestination: $DST_HOST:$DST_PORT/$DST_DB\n\nDump Dir: $DUMP_DIR\nFiles: <db-engine>-<timestamp>.dump" 16 70
+        --msgbox "All settings saved!\n\nType: $DB_TYPE\n\nSource: $SRC_HOST:$SRC_PORT/$SRC_DB\nDestination: $DST_HOST:$DST_PORT/$DST_DB\n\nDumps: $DUMP_DIR (auto-named)" 14 70
 }
 
 view_config() {
@@ -322,12 +298,10 @@ view_config() {
             --msgbox "No configuration found. Please configure first." 6 50
         return
     fi
-    
-    local dump_dir_display="${DUMP_DIR:-[Not configured]}"
 
     $DIALOG --clear --backtitle "DB Migration Manager" \
         --title "Current Configuration" \
-        --msgbox "Type: $DB_TYPE\n\nSource:\n  Host: $SRC_HOST:$SRC_PORT\n  User: $SRC_USER\n  DB: $SRC_DB\n\nDestination:\n  Host: $DST_HOST:$DST_PORT\n  User: $DST_USER\n  DB: $DST_DB\n\nDump Directory: $dump_dir_display\nFile naming: <db-engine>-<timestamp>.txt" 20 60
+        --msgbox "Type: $DB_TYPE\n\nSource:\n  Host: $SRC_HOST:$SRC_PORT\n  User: $SRC_USER\n  DB: $SRC_DB\n\nDestination:\n  Host: $DST_HOST:$DST_PORT\n  User: $DST_USER\n  DB: $DST_DB\n\nDumps: $DUMP_DIR (auto-named files)" 19 60
 }
 
 perform_dump() {
@@ -337,15 +311,6 @@ perform_dump() {
             --msgbox "Please configure the database first." 6 50
         return
     fi
-    
-    if [ -z "$DUMP_DIR" ]; then
-        $DIALOG --clear --backtitle "DB Migration Manager" \
-            --title "Error" \
-            --msgbox "Dump directory not configured. Please configure it first." 6 60
-        return
-    fi
-    
-    ensure_dir "$DUMP_DIR"
 
     clear
     log_header "DUMP - Exporting Database"
@@ -377,13 +342,6 @@ perform_load() {
         $DIALOG --clear --backtitle "DB Migration Manager" \
             --title "Error" \
             --msgbox "Please configure the database first." 6 50
-        return
-    fi
-    
-    if [ -z "$DUMP_DIR" ]; then
-        $DIALOG --clear --backtitle "DB Migration Manager" \
-            --title "Error" \
-            --msgbox "Dump directory not configured. Please configure it first." 6 60
         return
     fi
     
@@ -432,15 +390,7 @@ perform_migrate() {
             --msgbox "Please configure the database first." 6 50
         return
     fi
-    
-    if [ -z "$DUMP_DIR" ]; then
-        $DIALOG --clear --backtitle "DB Migration Manager" \
-            --title "Error" \
-            --msgbox "Dump directory not configured. Please configure it first." 6 60
-        return
-    fi
-    
-    ensure_dir "$DUMP_DIR"
+
 
     $DIALOG --clear --backtitle "DB Migration Manager" \
         --title "Confirmation" \
