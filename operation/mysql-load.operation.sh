@@ -20,8 +20,6 @@ log_progress() { echo -e "${YELLOW}⏳ $*${NC}"; }
 
 if [ ! -f "$DUMP_FILE" ]; then
     log_error "Dump file not found: $DUMP_FILE"
-    log_info "Note: When running in Docker mode, DUMP_DIR must be an absolute path on the HOST machine"
-    log_info "Example: /home/user/Downloads (not /root/Downloads inside container)"
     exit 1
 fi
 
@@ -39,32 +37,16 @@ docker run --rm \
 
 log_progress "Importing into $DST_DB on $DST_HOST:$DST_PORT..."
 
-if [ -n "$RUNNING_IN_DOCKER" ]; then
-    cat "$DUMP_FILE" | docker run --rm -i \
-        --network host \
-        -e MYSQL_PWD="$DST_PASS" \
-        mysql:8.0 \
-        mysql \
-        -h "$DST_HOST" \
-        -P "$DST_PORT" \
-        -u "$DST_USER" \
-        --verbose \
-        "$DST_DB"
-else
-    DUMP_DIR="$(dirname "$DUMP_FILE")"
-    DUMP_BASENAME="$(basename "$DUMP_FILE")"
-    docker run --rm \
-        --network host \
-        -e MYSQL_PWD="$DST_PASS" \
-        -v "$DUMP_DIR:/backup:ro" \
-        mysql:8.0 \
-        sh -c "mysql \
-        -h $DST_HOST \
-        -P $DST_PORT \
-        -u $DST_USER \
-        --verbose \
-        $DST_DB </backup/$DUMP_BASENAME"
-fi
+cat "$DUMP_FILE" | docker run --rm -i \
+    --network host \
+    -e MYSQL_PWD="$DST_PASS" \
+    mysql:8.0 \
+    mysql \
+    -h "$DST_HOST" \
+    -P "$DST_PORT" \
+    -u "$DST_USER" \
+    --verbose \
+    "$DST_DB"
 
 if [ $? -ne 0 ]; then
     log_error "Import failed."

@@ -19,22 +19,13 @@ log_error() { echo -e "${RED}❌ $*${NC}"; }
 log_warning() { echo -e "${YELLOW}⚠️  $*${NC}"; }
 log_progress() { echo -e "${YELLOW}⏳ $*${NC}"; }
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
-
-if [ -n "$RUNNING_IN_DOCKER" ] && [ -n "$HOST_WORKSPACE_DIR" ]; then
-    SQLPACKAGE_DIR="$HOST_WORKSPACE_DIR/dependencies/sqlpackage"
-else
-    SQLPACKAGE_DIR="$SCRIPT_DIR/dependencies/sqlpackage"
+if [ -z "$SQLPACKAGE_DIR" ]; then
+    log_error "SQLPACKAGE_DIR environment variable not set"
+    exit 1
 fi
 
 if [ ! -f "$DUMP_FILE" ]; then
     log_error "Dump file not found: $DUMP_FILE"
-    exit 1
-fi
-
-if [ -z "$RUNNING_IN_DOCKER" ] && [ ! -d "$SQLPACKAGE_DIR" ]; then
-    log_error "sqlpackage directory not found at: $SQLPACKAGE_DIR"
-    log_info "Please ensure dependencies/sqlpackage/ directory exists"
     exit 1
 fi
 
@@ -47,32 +38,18 @@ fi
 
 log_progress "Importing $DST_DB on $DST_HOST:$DST_PORT from BACPAC..."
 
-BACPAC_DIR="$(dirname "$BACPAC_FILE")"
 BACPAC_BASENAME="$(basename "$BACPAC_FILE")"
 
-if [ -n "$RUNNING_IN_DOCKER" ]; then
-    docker run --rm \
-        --network host \
-        -v "$SQLPACKAGE_DIR:/sqlpackage:ro" \
-        -v "$DUMPS_VOLUME:/backup:ro" \
-        mcr.microsoft.com/dotnet/runtime:8.0 \
-        dotnet /sqlpackage/sqlpackage.dll /Action:Import \
-        /TargetConnectionString:"Server=$DST_HOST,$DST_PORT;Database=$DST_DB;User Id=$DST_USER;Password=$DST_PASS;Encrypt=False;TrustServerCertificate=True;" \
-        /SourceFile:"/backup/$BACPAC_BASENAME" \
-        /p:DatabaseEdition=Standard \
-        /p:DatabaseServiceObjective=S0
-else
-    docker run --rm \
-        --network host \
-        -v "$SQLPACKAGE_DIR:/sqlpackage:ro" \
-        -v "$BACPAC_DIR:/backup:ro" \
-        mcr.microsoft.com/dotnet/runtime:8.0 \
-        dotnet /sqlpackage/sqlpackage.dll /Action:Import \
-        /TargetConnectionString:"Server=$DST_HOST,$DST_PORT;Database=$DST_DB;User Id=$DST_USER;Password=$DST_PASS;Encrypt=False;TrustServerCertificate=True;" \
-        /SourceFile:"/backup/$BACPAC_BASENAME" \
-        /p:DatabaseEdition=Standard \
-        /p:DatabaseServiceObjective=S0
-fi
+docker run --rm \
+    --network host \
+    -v "$SQLPACKAGE_DIR:/sqlpackage:ro" \
+    -v "$DUMPS_VOLUME:/backup:ro" \
+    mcr.microsoft.com/dotnet/runtime:8.0 \
+    dotnet /sqlpackage/sqlpackage.dll /Action:Import \
+    /TargetConnectionString:"Server=$DST_HOST,$DST_PORT;Database=$DST_DB;User Id=$DST_USER;Password=$DST_PASS;Encrypt=False;TrustServerCertificate=True;" \
+    /SourceFile:"/backup/$BACPAC_BASENAME" \
+    /p:DatabaseEdition=Standard \
+    /p:DatabaseServiceObjective=S0
 
 if [ $? -ne 0 ]; then
     log_error "Import failed."

@@ -1,516 +1,322 @@
-# 🗄️ Database Migration Manager
+# Database Migration Manager
 
-Professional database migration tool with Docker integration and interactive terminal UI.
+## Overview
 
-## 📋 Overview
+**Database Migration Manager** is a containerized, interactive database migration tool designed to simplify the process of moving data between database servers. Whether you're migrating between different hosts, creating database backups, or replicating databases for testing environments, this tool provides a unified, user-friendly interface for managing migrations across multiple database engines.
 
-A powerful command-line tool for managing database dumps, loads, and migrations across multiple database systems. All operations run in isolated Docker containers, eliminating the need for local database tools installation.
+Built entirely with Bash and Dialog, the tool runs inside a Docker container with a text-based user interface (TUI), eliminating the need for complex installations or dependencies on your host system. All database operations are executed using official Docker images (MySQL, PostgreSQL, SQL Server), ensuring consistency and reliability across different environments.
 
-### Key Features
+The tool handles the complete migration workflow: connecting to source and destination databases, exporting data in appropriate formats, and importing it safely with proper validation at each step. All dump files are stored in a persistent Docker volume, ensuring your data remains safe even after container restarts.
 
-- **🔄 Three Operation Modes**: Dump, Load, and full Migration workflow
-- **🗃️ Multi-Database Support**: MySQL/MariaDB, PostgreSQL, SQL Server
-- **🐳 Docker-Powered**: All operations isolated in containers
-- **📁 Auto-Naming**: Automatic timestamped filenames (`mysql-20260203-160530.txt`)
-- **💾 Persistent Configuration**: Save and reuse connection settings
-- **🎨 Interactive TUI**: Dialog-based terminal interface
-- **🔧 Modular Architecture**: Shared utilities via `lib/log.lib.sh`
+## Key Features
 
-## 🚀 Quick Start
+- **Multi-Database Engine Support**: MySQL 8.0, PostgreSQL 16, and SQL Server (via SqlPackage)
+- **Interactive TUI**: User-friendly dialog-based interface for configuration and operation
+- **Docker-First Architecture**: Runs entirely in containers, no local database tools required
+- **Persistent Storage**: Dumps stored in named Docker volumes for data safety
+- **Complete Migration Workflow**: One-click dump and restore operations
+- **Connection Testing**: Validate database credentials before migration
+- **Configuration Management**: Save and reuse database connection profiles
+- **Cross-Platform**: Works on Linux, macOS, and Windows (via Git Bash or WSL)
 
-### Linux/Unix (Direct Mode)
+## Architecture
 
-```bash
-# Make executable and run
-chmod +x db-manager.sh
-./db-manager.sh
+The tool uses a nested Docker architecture:
+
+1. **Main Container** (`database-migration-manager`): Runs the TUI application and orchestrates migrations
+2. **Database Containers**: Spawned dynamically for each operation (dump/load) using official images
+3. **Shared Resources**:
+   - `/dumps` volume: Persistent storage for database dumps
+   - Docker socket: Allows main container to spawn database containers
+   - Host networking: Direct access to database servers
+
+```
+┌─────────────────────────────────────────┐
+│  Main Container (db-manager)            │
+│  ┌────────────────────────────────────┐ │
+│  │ Dialog TUI Interface               │ │
+│  └────────────────────────────────────┘ │
+│                                         │
+│  ┌────────────────────────────────────┐ │
+│  │ Spawns DB Containers:              │ │
+│  │  • mysql:8.0                       │ │
+│  │  • postgres:16-alpine              │ │
+│  │  • dotnet:8.0 + sqlpackage         │ │
+│  └────────────────────────────────────┘ │
+│                                         │
+│  Volume: /dumps (persistent storage)    │
+└─────────────────────────────────────────┘
 ```
 
-### Linux/Unix (Docker Mode)
+## Requirements
+
+- **Docker**: Version 20.10 or higher
+- **Docker Compose** (optional): For advanced setups
+- **Operating System**:
+  - Linux/Unix: Native support
+  - Windows: Git Bash, WSL, or MSYS2
+  - macOS: Native support
+
+## Installation
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd Database-Migration-Manager
+   ```
+
+2. **Ensure Docker is running**:
+   ```bash
+   docker --version
+   docker ps
+   ```
+
+3. **Set up SQL Server dependencies** (if using SQL Server migrations):
+   - Download SqlPackage from [Microsoft's official site](https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage-download)
+   - Extract to `dependencies/sqlpackage/` directory
+   - The structure should be: `dependencies/sqlpackage/sqlpackage.dll`
+
+4. **Make scripts executable**:
+   ```bash
+   chmod +x run-docker-unix.sh
+   chmod +x db-manager.sh
+   ```
+
+## Usage
+
+### Linux/Unix/macOS
 
 ```bash
-# Run inside Docker container
-chmod +x run-docker-unix.sh
 ./run-docker-unix.sh
 ```
 
-### Windows (Git Bash/MSYS2)
+### Windows
 
+Using Git Bash or similar:
 ```bash
-# Run inside Docker container
-chmod +x run-docker-windows.sh
 ./run-docker-windows.sh
 ```
 
-## 📦 Requirements
+### First Run
 
-### Essential
-- **Docker**: Must be installed and running
-- **Bash**: Version 4.0 or higher
+On first execution, the tool will:
+1. Build the Docker image (takes 2-3 minutes)
+2. Create the `db-migration-dumps` volume
+3. Launch the interactive TUI
 
-### Platform-Specific
+## Main Menu Options
 
-**Linux (Direct Mode):**
-- Bundled dialog binary included (x86_64)
-- No additional dependencies
+### 1. MIGRATE - Complete Migration
 
-**Linux/Unix (Docker Mode):**
-- Docker daemon access
-- `/var/run/docker.sock` available
+Performs a full database migration (dump + restore) in one operation:
 
-**Windows (Docker Mode):**
-- Docker Desktop for Windows
-- Git Bash or MSYS2 terminal
+1. Select source database type (MySQL, PostgreSQL, SQL Server)
+2. Enter source connection details (host, port, user, password, database)
+3. Select destination database type
+4. Enter destination connection details
+5. Tool automatically:
+   - Exports source database to dump file
+   - Imports dump into destination database
+   - Reports success/failure
 
-## 📂 Project Structure
+**Use case**: Quick migration between two servers
+
+### 2. DUMP - Export Database
+
+Exports a database to a dump file:
+
+- **MySQL**: Creates `.sql` dump using `mysqldump`
+- **PostgreSQL**: Creates custom format dump using `pg_dump -F c`
+- **SQL Server**: Creates `.bacpac` file using SqlPackage
+
+Dumps are stored in `/dumps` (Docker volume `db-migration-dumps`)
+
+**Use case**: Backup, versioning, or preparing for later import
+
+### 3. LOAD - Import Database
+
+Imports a previously created dump file:
+
+- Select dump file from list
+- Choose destination database type
+- Enter destination connection details
+- Tool imports data safely
+
+**Use case**: Restore backup, clone database, or import to different engine
+
+### 4. TEST - Test Connection
+
+Validates database credentials without performing any operations:
+
+- Tests network connectivity
+- Verifies authentication
+- Lists available databases (for PostgreSQL/MySQL)
+
+**Use case**: Debugging connection issues before migration
+
+### 5. CONFIG - Configuration
+
+Manages global settings:
+
+- **Dump Directory**: Fixed to `/dumps` (Docker volume mount)
+- View current configuration
+- Reset to defaults if needed
+
+## Configuration File
+
+Settings are stored in `.config` file (automatically created):
+
+```bash
+DUMP_DIR=/dumps
+# Additional settings as needed
+```
+
+**Note**: `DUMP_DIR` is automatically corrected to `/dumps` to ensure data persists in the Docker volume.
+
+## Dump File Formats
+
+### MySQL
+- **Format**: SQL text file (`.sql`)
+- **Tool**: `mysqldump`
+- **Features**: Includes routines, triggers, events, uses single-transaction
+
+### PostgreSQL
+- **Format**: Custom format (`.dump`)
+- **Tool**: `pg_dump -F c`
+- **Features**: Binary format, includes `--clean` and `--if-exists` on restore
+
+### SQL Server
+- **Format**: BACPAC (`.bacpac`)
+- **Tool**: SqlPackage
+- **Features**: Schema + data, portable across SQL Server versions
+- **Note**: Creates `.txt` reference file containing path to actual `.bacpac`
+
+## Volume Management
+
+### List Dumps
+```bash
+docker volume inspect db-migration-dumps
+docker run --rm -v db-migration-dumps:/dumps alpine ls -lh /dumps
+```
+
+### Backup Volume
+```bash
+docker run --rm -v db-migration-dumps:/dumps -v $(pwd):/backup alpine \
+  tar czf /backup/dumps-backup.tar.gz /dumps
+```
+
+### Restore Volume
+```bash
+docker run --rm -v db-migration-dumps:/dumps -v $(pwd):/backup alpine \
+  tar xzf /backup/dumps-backup.tar.gz -C /
+```
+
+### Delete Volume
+```bash
+docker volume rm db-migration-dumps
+```
+
+## Troubleshooting
+
+### "Docker not found"
+- Ensure Docker is installed and running
+- Check with: `docker ps`
+
+### "Permission denied on /var/run/docker.sock"
+- Add your user to docker group: `sudo usermod -aG docker $USER`
+- Log out and back in
+
+### "SQLPACKAGE_DIR environment variable not set"
+- Ensure SqlPackage is in `dependencies/sqlpackage/`
+- Check `run-docker-*.sh` passes `-e SQLPACKAGE_DIR`
+
+### "Dump directory must be /dumps"
+- Configuration auto-corrects on load
+- Never manually set `DUMP_DIR` to non-volume paths
+
+### MySQL/PostgreSQL connection fails
+- Verify `--network host` is working
+- Test connection from host: `mysql -h <host> -P <port> -u <user> -p`
+- Check firewall rules
+
+### SQL Server BACPAC import fails
+- Ensure destination server has sufficient space
+- Check SQL Server edition compatibility
+- Review error logs in container output
+
+## Project Structure
 
 ```
 Database-Migration-Manager/
-├── db-manager.sh                    # Main orchestration script
-├── run-docker-unix.sh               # Docker launcher (Linux/Unix)
-├── run-docker-windows.sh            # Docker launcher (Windows)
-├── operation/                       # Database-specific operations
-│   ├── mysql-dump.operation.sh      # MySQL export
-│   ├── mysql-load.operation.sh      # MySQL import
-│   ├── postgres-dump.operation.sh   # PostgreSQL export
-│   ├── postgres-load.operation.sh   # PostgreSQL import
-│   ├── sqlserver-dump.operation.sh  # SQL Server export
-│   └── sqlserver-load.operation.sh  # SQL Server import
+├── db-manager.sh              # Main TUI application
+├── Dockerfile                 # Container build definition
+├── run-docker-unix.sh         # Linux/macOS launcher
+├── run-docker-windows.sh      # Windows launcher
 ├── lib/
-│   └── log.lib.sh                   # Shared utilities and logging
+│   └── log.lib.sh            # Logging functions
+├── operation/
+│   ├── mysql-dump.operation.sh
+│   ├── mysql-load.operation.sh
+│   ├── postgres-dump.operation.sh
+│   ├── postgres-load.operation.sh
+│   ├── sqlserver-dump.operation.sh
+│   └── sqlserver-load.operation.sh
 ├── dependencies/
-│   ├── dialog/                      # Bundled dialog (Linux x86_64)
-│   └── sqlpackage/                  # SQL Server tools
-├── Dockerfile                       # Container image definition
-├── .config                          # Auto-generated configuration
-└── README.md                        # This file
+│   ├── dialog/                # Dialog binary (bundled)
+│   └── sqlpackage/            # SqlPackage (user-provided)
+└── README.md
 ```
 
-## 📖 Usage Guide
+## Environment Variables
 
-### Initial Configuration
+The following environment variables are automatically set by launch scripts:
 
-1. Launch the tool (direct or Docker mode)
-2. Select **"Configure Database"** from main menu
-3. Choose configuration approach:
-   - **Complete Setup (Wizard)**: Guided step-by-step configuration
-   - **Individual Settings**: Configure specific components
+- `DUMPS_VOLUME`: Name of Docker volume for dumps (`db-migration-dumps`)
+- `SQLPACKAGE_DIR`: Host path to SqlPackage directory (SQL Server only)
+- `LANG=C.UTF-8`: Ensures proper character encoding
+- `LC_ALL=C.UTF-8`: Locale settings for internationalization
 
-### Configuration Settings
+## Security Considerations
 
-#### Database Type
-- MySQL/MariaDB (default port 3306)
-- PostgreSQL (default port 5432)
-- SQL Server (default port 1433)
+- **Passwords**: Passed via environment variables to containers (not stored on disk)
+- **Network**: Uses `--network host` for database access (consider VPN in production)
+- **Docker Socket**: Main container has full Docker access (run only trusted code)
+- **Volumes**: Dumps stored in named volume (backed up separately)
 
-#### Source Database
-- Hostname/IP and port
-- Authentication credentials
-- Database name
+## Limitations
 
-#### Destination Database
-- Hostname/IP and port
-- Authentication credentials
-- Database name
+- **Large Databases**: Very large dumps (>10GB) may be slow via stdout/stdin
+- **SQL Server**: Requires SqlPackage download (not bundled due to licensing)
+- **Windows Paths**: Use Git Bash/WSL, avoid cmd.exe
+- **Network**: Requires direct network access to database servers
 
-#### Dump Directory
-- Local directory path for dump files
-- Files auto-named: `<engine>-<timestamp>.txt`
-- Example: `postgres-20260203-160530.txt`
+## Contributing
 
-### Operations
+Contributions welcome! Please:
 
-#### 🔽 Dump (Export)
+1. Fork the repository
+2. Create a feature branch
+3. Follow existing code style (Bash best practices)
+4. Test with all three database engines
+5. Submit pull request with clear description
 
-Exports a database to an automatically timestamped file.
+## License
 
-**How it works:**
-- Generates filename with timestamp
-- Saves to configured directory
-- Uses appropriate database tool:
-  - **MySQL**: `mysqldump` (full schema + data)
-  - **PostgreSQL**: `pg_dump -F c` (custom format)
-  - **SQL Server**: `sqlcmd` with BACKUP DATABASE
+[Specify your license here - MIT, Apache 2.0, GPL, etc.]
 
-**Example output:**
-```
-postgres-20260203-160530.txt
-mysql-20260203-161245.txt
-sqlserver-20260203-162000.txt
-```
+## Support
 
-#### 🔼 Load (Import)
+For issues, questions, or feature requests:
+- Open an issue on GitHub
+- Provide Docker version, OS, and error logs
+- Include `.config` file contents (redact passwords)
 
-Imports a database from a selected dump file.
+## Acknowledgments
 
-**How it works:**
-- Prompts for file selection
-- Shows most recent dump as default
-- Validates file exists
-- Imports using appropriate tool:
-  - **MySQL**: `mysql` client
-  - **PostgreSQL**: `pg_restore --clean --if-exists`
-  - **SQL Server**: `sqlcmd` with RESTORE DATABASE
-
-#### 🔄 Migrate (Full Workflow)
-
-Complete migration from source to destination in one operation.
-
-**Process:**
-1. Dumps from source database
-2. Loads into destination database
-3. Uses single timestamped file
-4. Atomic operation (all or nothing)
-
-**Use cases:**
-- Clone production to staging
-- Migrate between servers
-- Backup and restore workflows
-- Database version upgrades
-
-### Menu Navigation
-
-- **Arrow Keys**: Navigate options
-- **Enter**: Select/Confirm
-- **ESC**: Return to previous menu (never exits)
-- **Tab**: Switch between form fields
-
-## ⚙️ Configuration File
-
-Location: `.config` (auto-generated in project root)
-
-```bash
-DB_TYPE=postgres
-SRC_HOST=10.8.0.1
-SRC_PORT=5432
-SRC_USER=postgres
-SRC_PASS=yourpassword
-SRC_DB=production_db
-DST_HOST=10.8.0.1
-DST_PORT=5432
-DST_USER=postgres
-DST_PASS=yourpassword
-DST_DB=staging_db
-DUMP_DIR=/home/user/Downloads
-```
-
-### Security Best Practices
-
-```bash
-# Restrict file permissions
-chmod 600 .config
-
-# Add to gitignore
-echo ".config" >> .gitignore
-
-# Never commit credentials
-git add .gitignore
-```
-
-## 🐳 Docker Details
-
-### Container Images
-
-| Database | Image | Tag | Approx Size |
-|----------|-------|-----|-------------|
-| MySQL | `mysql` | `8.0` | ~500MB |
-| PostgreSQL | `postgres` | `16-alpine` | ~240MB |
-| SQL Server | `mcr.microsoft.com/mssql-tools` | `latest` | ~150MB |
-
-### Docker Network
-
-- **Name**: `database-migration-network`
-- **Driver**: bridge
-- **Auto-created**: Yes
-- **Isolation**: Container-to-container communication only
-
-### Container Lifecycle
-
-- **Ephemeral**: Containers removed after each operation (`--rm`)
-- **Volumes**: Only `.config` mounted for persistence
-- **Naming**: Auto-generated with timestamp
-
-### Docker Mode vs Direct Mode
-
-**Docker Mode (`run-docker-*.sh`):**
-- ✅ Runs inside container with all dependencies
-- ✅ Consistent environment across platforms
-- ✅ No local dialog installation needed
-- ⚠️ Requires Docker socket access
-- ⚠️ Slightly slower startup
-
-**Direct Mode (`db-manager.sh`):**
-- ✅ Faster execution
-- ✅ Direct access to host filesystem
-- ✅ Lower overhead
-- ⚠️ Requires system dialog (or uses bundled)
-- ⚠️ Linux x86_64 only for bundled dialog
-
-## 🔧 Troubleshooting
-
-### Dialog Not Found (Direct Mode)
-
-**Symptom**: "Dialog not available" error
-
-**Solution**:
-```bash
-# Debian/Ubuntu
-sudo apt-get install dialog
-
-# RHEL/CentOS
-sudo yum install dialog
-
-# Fedora
-sudo dnf install dialog
-
-# Arch Linux
-sudo pacman -S dialog
-```
-
-### Docker Permission Denied
-
-**Symptom**: Cannot connect to Docker socket
-
-**Linux Solution**:
-```bash
-# Add user to docker group
-sudo usermod -aG docker $USER
-
-# Apply changes
-newgrp docker
-```
-
-**Windows Solution**:
-- Ensure Docker Desktop is running
-- Check Docker Desktop → Settings → Resources → WSL Integration
-
-### Configuration Not Persisting (Docker Mode)
-
-**Symptom**: Configuration lost after container restart
-
-**Cause**: `.config` created as directory instead of file
-
-**Solution**:
-```bash
-# Remove incorrect directory
-rm -rf .config
-
-# Recreate as file
-touch .config
-
-# Run script again (will handle this automatically)
-./run-docker-unix.sh
-```
-
-### Dump Directory Not Configured
-
-**Symptom**: Error "Dump directory not configured"
-
-**Solution**:
-1. Go to Configure Database menu
-2. Select "Dump Directory (Auto-named files)"
-3. Enter valid absolute path (e.g., `/home/user/Downloads`)
-
-### File Not Found During Load
-
-**Symptom**: "File not found" when loading dump
-
-**Solution**:
-```bash
-# Verify file exists
-ls -lh /path/to/dump/directory/
-
-# Check permissions
-chmod 644 /path/to/dump/*.txt
-
-# Ensure using absolute path
-```
-
-### SQL Server Connection Issues
-
-**Common issues and solutions:**
-
-- **Cannot connect**: Use IP address instead of `localhost`
-- **Port not open**: Verify port 1433 is accessible
-- **Authentication failed**: Enable SQL Server mixed mode authentication
-- **Password error**: Ensure password meets SQL Server complexity requirements
-
-### PostgreSQL Version Mismatch
-
-**Symptom**: "pg_dump version mismatch" warning
-
-**Info**: Script uses PostgreSQL 16
-
-**Solution**:
-- Dumps are forward-compatible
-- Loading to older versions may require manual adjustments
-- Consider upgrading target PostgreSQL version
-
-### Network Already Exists
-
-**Symptom**: "network database-migration-network already exists"
-
-**Solution**:
-```bash
-# Remove existing network
-docker network rm database-migration-network
-
-# Script will recreate automatically on next run
-```
-
-## 🔒 Security Considerations
-
-### Credential Storage
-- ⚠️ **Plain Text**: Credentials stored unencrypted in `.config`
-- 🔐 **Mitigation**: Use `chmod 600 .config` to restrict access
-- 🚫 **Never commit**: Add `.config` to `.gitignore`
-- 💡 **Best Practice**: Use read-only database users when possible
-
-### Docker Socket Access
-- ⚠️ **Full Access**: Docker mode mounts `/var/run/docker.sock`
-- 🔐 **Implication**: Full control over Docker daemon
-- 🚫 **Production**: Use direct mode with restricted permissions
-- 💡 **Best Practice**: Only use Docker mode in development environments
-
-### Network Exposure
-- ✅ **Isolated**: Containers use dedicated bridge network
-- ✅ **Ephemeral**: Containers removed immediately after operations
-- ⚠️ **External**: Connections to external databases use host network
-- 💡 **Best Practice**: Use VPN or SSH tunnels for remote databases
-
-### Dump Files
-- ⚠️ **Sensitive Data**: Dumps contain complete database contents
-- 🔐 **Mitigation**: Encrypt dump directory or use secure storage
-- 🚫 **Shared Drives**: Avoid network shares for sensitive dumps
-- 💡 **Best Practice**: Set restrictive permissions on dump directory
-
-## 🪟 Windows Specific Notes
-
-### Prerequisites
-- Docker Desktop for Windows (running)
-- Git Bash or MSYS2 terminal
-- WSL2 backend (recommended)
-
-### Running on Windows
-
-```bash
-# Navigate to project
-cd Database-Migration-Manager
-
-# Make executable
-chmod +x run-docker-windows.sh
-
-# Launch
-./run-docker-windows.sh
-```
-
-### Important Notes
-
-- **Use Docker Mode**: Direct mode not supported on Windows
-- **Path Conversion**: Script handles Windows path conversion automatically
-- **Docker Socket**: Mounted via Docker Desktop's named pipe
-- **File Sharing**: Ensure Docker has access to project directory
-
-### Common Windows Issues
-
-**Docker not found:**
-```bash
-# Verify Docker Desktop is running
-docker --version
-
-# Check Docker service
-docker ps
-```
-
-**Path conversion errors:**
-- Script sets `MSYS_NO_PATHCONV=1` automatically
-- If issues persist, use absolute Windows paths
-
-**Line ending issues:**
-```bash
-# Convert to Unix line endings
-dos2unix *.sh operation/*.sh
-
-# Or configure git
-git config --global core.autocrlf input
-```
-
-## 🤝 Contributing
-
-### Adding New Database Engines
-
-1. **Create operation scripts** in `operation/`:
-   ```bash
-   <engine>-dump.operation.sh
-   <engine>-load.operation.sh
-   ```
-
-2. **Script template**:
-   ```bash
-   #!/bin/bash
-   source "$(dirname "$0")/../lib/log.lib.sh"
-   
-   # Parse parameters
-   HOST="$1"
-   PORT="$2"
-   USER="$3"
-   PASS="$4"
-   DB="$5"
-   DUMP_FILE="$6"
-   
-   # Docker operation logic
-   docker run --rm \
-       --network database-migration-network \
-       -v "$(dirname "$DUMP_FILE"):/backup" \
-       <image>:<tag> \
-       <command>
-   ```
-
-3. **Update `db-manager.sh`**:
-   - Add to `configure_db_type()` menu
-   - Add case in `perform_dump()`
-   - Add case in `perform_load()`
-   - Add case in `perform_migrate()`
-
-4. **Test thoroughly**:
-   - Dump operation creates valid file
-   - Load operation restores correctly
-   - Migrate completes full workflow
-   - Auto-naming generates correct filename
-
-### Code Style Guidelines
-
-- **Indentation**: 4 spaces (no tabs)
-- **Variables**: Always quote: `"$VAR"`
-- **Functions**: Use `log_*` functions for output
-- **Errors**: Handle gracefully, never `set -e`
-- **Comments**: Explain why, not what
-- **Naming**: Use descriptive names
-
-## 📝 License
-
-This project is provided as-is for educational and professional use.
-
-## 🙏 Acknowledgments
-
-- **Dialog Project**: Excellent TUI library for Bash
-- **Docker**: Making containerization accessible
-- **MySQL Community**: Reliable database tools
-- **PostgreSQL Community**: Robust open-source database
-- **Microsoft**: SQL Server tooling
-
-## 📞 Support
-
-For issues, questions, or contributions:
-
-1. Check existing documentation in this README
-2. Review troubleshooting section
-3. Verify Docker is running and accessible
-4. Check `.config` file permissions and content
-5. Test with simple local databases first
+- Built with [Dialog](https://invisible-island.net/dialog/) for TUI
+- Uses official Docker images: [MySQL](https://hub.docker.com/_/mysql), [PostgreSQL](https://hub.docker.com/_/postgres), [.NET Runtime](https://hub.docker.com/_/microsoft-dotnet-runtime)
+- SqlPackage by [Microsoft](https://learn.microsoft.com/sql/tools/sqlpackage/)
 
 ---
 
-**Built for database administrators and developers who value automation and reliability.**
-
-*Version 2.0 - February 2026*
+**Happy Migrating! 🚀**
