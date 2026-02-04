@@ -45,17 +45,32 @@ docker run --rm \
 log_progress "Importing into $DST_DB on $DST_HOST:$DST_PORT..."
 
 # Importar dump
-docker run --rm \
-    --network host \
-    -e MYSQL_PWD="$DST_PASS" \
-    -v "$DUMP_FILE:/backup/dump.sql:ro" \
-    mysql:8.0 \
-    mysql \
-    -h "$DST_HOST" \
-    -P "$DST_PORT" \
-    -u "$DST_USER" \
-    --verbose \
-    "$DST_DB" </backup/dump.sql
+if [ -n "$RUNNING_IN_DOCKER" ]; then
+    # Rodando em Docker: passar dump via stdin
+    cat "$DUMP_FILE" | docker run --rm -i \
+        --network host \
+        -e MYSQL_PWD="$DST_PASS" \
+        mysql:8.0 \
+        mysql \
+        -h "$DST_HOST" \
+        -P "$DST_PORT" \
+        -u "$DST_USER" \
+        --verbose \
+        "$DST_DB"
+else
+    # Rodando direto no host: usar volume mount
+    docker run --rm \
+        --network host \
+        -e MYSQL_PWD="$DST_PASS" \
+        -v "$DUMP_FILE:/backup/dump.sql:ro" \
+        mysql:8.0 \
+        mysql \
+        -h "$DST_HOST" \
+        -P "$DST_PORT" \
+        -u "$DST_USER" \
+        --verbose \
+        "$DST_DB" </backup/dump.sql
+fi
 
 if [ $? -ne 0 ]; then
     log_error "Import failed."

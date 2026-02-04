@@ -29,22 +29,41 @@ mkdir -p "$DUMP_DIR"
 
 log_progress "Dumping $SRC_DB from $SRC_HOST:$SRC_PORT..."
 
-# Usar Docker para executar mysqldump
-docker run --rm \
-    --network host \
-    -e MYSQL_PWD="$SRC_PASS" \
-    -v "$DUMP_DIR:/backup" \
-    mysql:8.0 \
-    sh -c "mysqldump \
-    -h $SRC_HOST \
-    -P $SRC_PORT \
-    -u $SRC_USER \
-    --verbose \
-    --single-transaction \
-    --routines \
-    --triggers \
-    --events \
-    $SRC_DB > /backup/$DUMP_BASENAME"
+# Verificar se está rodando dentro do Docker
+if [ -n "$RUNNING_IN_DOCKER" ]; then
+    # Rodando em Docker: criar dump localmente e copiar do container temporário
+    docker run --rm \
+        --network host \
+        -e MYSQL_PWD="$SRC_PASS" \
+        mysql:8.0 \
+        sh -c "mysqldump \
+        -h $SRC_HOST \
+        -P $SRC_PORT \
+        -u $SRC_USER \
+        --verbose \
+        --single-transaction \
+        --routines \
+        --triggers \
+        --events \
+        $SRC_DB" > "$DUMP_FILE"
+else
+    # Rodando direto no host: usar volume mount
+    docker run --rm \
+        --network host \
+        -e MYSQL_PWD="$SRC_PASS" \
+        -v "$DUMP_DIR:/backup" \
+        mysql:8.0 \
+        sh -c "mysqldump \
+        -h $SRC_HOST \
+        -P $SRC_PORT \
+        -u $SRC_USER \
+        --verbose \
+        --single-transaction \
+        --routines \
+        --triggers \
+        --events \
+        $SRC_DB > /backup/$DUMP_BASENAME"
+fi
 
 if [ $? -ne 0 ]; then
     log_error "Dump failed."

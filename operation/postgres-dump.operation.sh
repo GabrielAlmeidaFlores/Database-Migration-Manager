@@ -28,19 +28,35 @@ mkdir -p "$(dirname "$DUMP_FILE")"
 log_progress "Dumping $SRC_DB from $SRC_HOST:$SRC_PORT..."
 
 # Use Docker to run pg_dump (version 16 for compatibility)
-docker run --rm \
-    --network host \
-    -e PGPASSWORD="$SRC_PASS" \
-    -v "$(dirname "$DUMP_FILE"):/backup" \
-    postgres:16-alpine \
-    pg_dump \
-    -h "$SRC_HOST" \
-    -p "$SRC_PORT" \
-    -U "$SRC_USER" \
-    -d "$SRC_DB" \
-    -F c \
-    --verbose \
-    -f "/backup/$(basename "$DUMP_FILE")"
+if [ -n "$RUNNING_IN_DOCKER" ]; then
+    # Rodando em Docker: criar dump localmente
+    docker run --rm \
+        --network host \
+        -e PGPASSWORD="$SRC_PASS" \
+        postgres:16-alpine \
+        pg_dump \
+        -h "$SRC_HOST" \
+        -p "$SRC_PORT" \
+        -U "$SRC_USER" \
+        -d "$SRC_DB" \
+        -F c \
+        --verbose > "$DUMP_FILE"
+else
+    # Rodando direto no host: usar volume mount
+    docker run --rm \
+        --network host \
+        -e PGPASSWORD="$SRC_PASS" \
+        -v "$(dirname "$DUMP_FILE"):/backup" \
+        postgres:16-alpine \
+        pg_dump \
+        -h "$SRC_HOST" \
+        -p "$SRC_PORT" \
+        -U "$SRC_USER" \
+        -d "$SRC_DB" \
+        -F c \
+        --verbose \
+        -f "/backup/$(basename "$DUMP_FILE")"
+fi
 
 if [ $? -ne 0 ]; then
     log_error "Dump failed."
