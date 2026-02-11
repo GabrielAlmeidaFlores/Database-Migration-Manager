@@ -61,8 +61,9 @@ count_dump_files() {
 
 generate_dump_filename() {
     local db_type="$1"
+    local db_name="$2"
     local timestamp=$(date +%Y%m%d-%H%M%S)
-    echo "${db_type}-${timestamp}.txt"
+    echo "${db_type}-${db_name}-${timestamp}.txt"
 }
 
 save_config() {
@@ -509,7 +510,7 @@ perform_dump() {
     log_info "🔄 Starting dump of $SRC_DB..."
     ensure_docker_network "$DOCKER_NETWORK"
     
-    DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE")
+    DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB")
     DUMP_FILE="$DUMP_DIR/$DUMP_FILENAME"
     log_info "📄 File: $DUMP_FILENAME"
 
@@ -618,7 +619,7 @@ perform_migrate() {
     log_info "🔄 Starting migration from $SRC_DB to $DST_DB..."
     ensure_docker_network "$DOCKER_NETWORK"
     
-    DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE")
+    DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB")
     DUMP_FILE="$DUMP_DIR/$DUMP_FILENAME"
     log_info "📄 File: $DUMP_FILENAME"
 
