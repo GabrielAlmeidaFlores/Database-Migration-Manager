@@ -519,7 +519,6 @@ perform_dump() {
     return
   fi
 
-  # Ask user for dump type (skip for SQL Server as BACPAC always includes both)
   DUMP_TYPE="both"
   if [ "$DB_TYPE" = "mysql" ] || [ "$DB_TYPE" = "postgres" ]; then
     DUMP_TYPE=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
@@ -531,7 +530,6 @@ perform_dump() {
       "data" "Data only (no structure)" \
       3>&1 1>&2 2>&3)
 
-    # Check if user cancelled
     if [ $? -ne 0 ]; then
       return
     fi
@@ -649,7 +647,6 @@ perform_migrate() {
     return
   fi
 
-  # Ask user for dump type (skip for SQL Server as BACPAC always includes both)
   DUMP_TYPE="both"
   if [ "$DB_TYPE" = "mysql" ] || [ "$DB_TYPE" = "postgres" ]; then
     DUMP_TYPE=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
@@ -661,7 +658,6 @@ perform_migrate() {
       "data" "Data only (no structure)" \
       3>&1 1>&2 2>&3)
 
-    # Check if user cancelled
     if [ $? -ne 0 ]; then
       return
     fi
