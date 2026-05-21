@@ -30,24 +30,6 @@ The tool uses a nested Docker architecture:
    - Docker socket: Allows main container to spawn database containers
    - Host networking: Direct access to database servers
 
-```
-┌─────────────────────────────────────────┐
-│  Main Container (db-manager)            │
-│  ┌────────────────────────────────────┐ │
-│  │ Dialog TUI Interface               │ │
-│  └────────────────────────────────────┘ │
-│                                         │
-│  ┌────────────────────────────────────┐ │
-│  │ Spawns DB Containers:              │ │
-│  │  • mysql:8.0                       │ │
-│  │  • postgres:16-alpine              │ │
-│  │  • dotnet:8.0 + sqlpackage         │ │
-│  └────────────────────────────────────┘ │
-│                                         │
-│  Volume: /dumps (persistent storage)    │
-└─────────────────────────────────────────┘
-```
-
 ## Requirements
 
 - **Docker**: Version 20.10 or higher
