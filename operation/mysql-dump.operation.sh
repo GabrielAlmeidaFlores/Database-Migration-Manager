@@ -39,6 +39,7 @@ docker run --rm \
     -h $SRC_HOST \
     -P $SRC_PORT \
     -u $SRC_USER \
+    --verbose \
     --single-transaction \
     --routines \
     --triggers \

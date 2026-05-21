@@ -39,6 +39,7 @@ docker run --rm \
     -U "$SRC_USER" \
     -d "$SRC_DB" \
     -F c \
+    --verbose \
     -f "/backup/$(basename "$DUMP_FILE")"
 
 if [ $? -ne 0 ]; then

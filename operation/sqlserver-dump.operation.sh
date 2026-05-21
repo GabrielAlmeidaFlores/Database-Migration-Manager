@@ -40,7 +40,7 @@ docker run --rm \
     -S "$SRC_HOST,$SRC_PORT" \
     -U "$SRC_USER" \
     -P "$SRC_PASS" \
-    -Q "BACKUP DATABASE [$SRC_DB] TO DISK = N'$BACKUP_PATH' WITH FORMAT, INIT, NAME = N'$SRC_DB-Full', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
+    -Q "BACKUP DATABASE [$SRC_DB] TO DISK = N'$BACKUP_PATH' WITH FORMAT, INIT, NAME = N'$SRC_DB-Full', SKIP, NOREWIND, NOUNLOAD, STATS = 1"
 
 if [ $? -ne 0 ]; then
     log_error "Backup failed."
