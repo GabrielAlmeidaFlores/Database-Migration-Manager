@@ -39,6 +39,14 @@ echo ""
 # Create dumps directory if it doesn't exist
 ensure_dir "$SCRIPT_DIR/dumps"
 
+# Detect OS and set Docker socket path
+DOCKER_SOCKET="/var/run/docker.sock"
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+    # Windows (Git Bash)
+    DOCKER_SOCKET="//var/run/docker.sock"
+    log_warning "Windows detected: Docker socket mount may not work in all environments"
+fi
+
 # Run the container with:
 # - Interactive terminal with UTF-8 support
 # - Docker socket mounted (for Docker-in-Docker)
@@ -49,7 +57,7 @@ docker run -it --rm \
     --name "$CONTAINER_NAME" \
     -e LANG=C.UTF-8 \
     -e LC_ALL=C.UTF-8 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$DOCKER_SOCKET:/var/run/docker.sock" \
     -v "$SCRIPT_DIR/.config:/app/.config" \
     -v "$SCRIPT_DIR/dumps:/dumps" \
     --network host \
