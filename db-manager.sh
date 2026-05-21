@@ -649,6 +649,24 @@ perform_migrate() {
     return
   fi
 
+  # Ask user for dump type (skip for SQL Server as BACPAC always includes both)
+  DUMP_TYPE="both"
+  if [ "$DB_TYPE" = "mysql" ] || [ "$DB_TYPE" = "postgres" ]; then
+    DUMP_TYPE=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
+      --title "Select Migration Type" \
+      --default-item "both" \
+      --menu "What should be migrated?" 12 60 3 \
+      "both" "Structure + Data (Recommended)" \
+      "structure" "Structure only (no data)" \
+      "data" "Data only (no structure)" \
+      3>&1 1>&2 2>&3)
+
+    # Check if user cancelled
+    if [ $? -ne 0 ]; then
+      return
+    fi
+  fi
+
   $DIALOG --clear --backtitle "$PROJECT_NAME" \
     --title "Confirmation" \
     --yesno "Migrate $SRC_DB to $DST_DB?\n\nThis will:\n1. Dump from source\n2. Load to destination" 10 50
@@ -659,23 +677,35 @@ perform_migrate() {
 
   clear
   log_header "MIGRATE - Complete Migration"
-  log_info "🔄 Starting migration from $SRC_DB to $DST_DB..."
+  
+  case "$DUMP_TYPE" in
+    structure)
+      log_info "🔄 Starting structure-only migration from $SRC_DB to $DST_DB..."
+      ;;
+    data)
+      log_info "🔄 Starting data-only migration from $SRC_DB to $DST_DB..."
+      ;;
+    both)
+      log_info "🔄 Starting full migration from $SRC_DB to $DST_DB..."
+      ;;
+  esac
+  
   ensure_docker_network "$DOCKER_NETWORK"
 
-  DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB")
+  DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB" "$DUMP_TYPE" "$SRC_HOST")
   DUMP_FILE="$DUMP_DIR/$DUMP_FILENAME"
   log_info "📄 File: $DUMP_FILENAME"
 
   log_step "Step 1/2: Dump..."
   case $DB_TYPE in
   mysql)
-    "$SCRIPT_DIR/operation/mysql-dump.operation.sh" "$SRC_HOST" "$SRC_PORT" "$SRC_USER" "$SRC_PASS" "$SRC_DB" "$DUMP_FILE"
+    "$SCRIPT_DIR/operation/mysql-dump.operation.sh" "$SRC_HOST" "$SRC_PORT" "$SRC_USER" "$SRC_PASS" "$SRC_DB" "$DUMP_FILE" "$DUMP_TYPE"
     ;;
   postgres)
-    "$SCRIPT_DIR/operation/postgres-dump.operation.sh" "$SRC_HOST" "$SRC_PORT" "$SRC_USER" "$SRC_PASS" "$SRC_DB" "$DUMP_FILE"
+    "$SCRIPT_DIR/operation/postgres-dump.operation.sh" "$SRC_HOST" "$SRC_PORT" "$SRC_USER" "$SRC_PASS" "$SRC_DB" "$DUMP_FILE" "$DUMP_TYPE"
     ;;
   sqlserver)
-    "$SCRIPT_DIR/operation/sqlserver-dump.operation.sh" "$SRC_HOST" "$SRC_PORT" "$SRC_USER" "$SRC_PASS" "$SRC_DB" "$DUMP_FILE"
+    "$SCRIPT_DIR/operation/sqlserver-dump.operation.sh" "$SRC_HOST" "$SRC_PORT" "$SRC_USER" "$SRC_PASS" "$SRC_DB" "$DUMP_FILE" "$DUMP_TYPE"
     ;;
   esac
 
