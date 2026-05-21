@@ -112,12 +112,12 @@ main_menu() {
     CHOICE=$($DIALOG --clear --backtitle "$PROJECT_NAME v$VERSION" \
       --title "Main Menu" \
       --menu "Choose an operation:" 17 60 7 \
-      1 "🗄️  Configure Database" \
+      1 "🔧 Configure Database" \
       2 "💾 Dump (Export)" \
       3 "📥 Load (Import)" \
       4 "🔄 Migrate (Dump + Load)" \
       5 "📦 Manage Dumps" \
-      6 "⚙️  View Configuration" \
+      6 "📝 View Configuration" \
       7 "🚪 Exit" \
       3>&1 1>&2 2>&3)
 
@@ -144,11 +144,11 @@ configure_database() {
     CONFIG_MENU=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
       --title "Configuration" \
       --menu "What do you want to configure?" 15 65 6 \
-      1 "🗄️  Database Type (Current: ${DB_TYPE:-Not configured})" \
+      1 "🔗 Database Type (Current: ${DB_TYPE:-Not configured})" \
       2 "📤 SOURCE Configuration" \
       3 "📥 DESTINATION Configuration" \
       4 "✅ Complete Setup (Step by Step)" \
-      5 "👁️  View Current Configuration" \
+      5 "📝 View Current Configuration" \
       6 "🔙 Back to Main Menu" \
       3>&1 1>&2 2>&3)
 
@@ -621,8 +621,8 @@ perform_load() {
   LOAD_OPTIONS=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
     --title "Import Options" \
     --checklist "Select options for the import:" 10 65 2 \
-    "force"     "Continue on error (ignore table failures)" "off" \
-    "create_db" "Create database if it does not exist"      "off" \
+    "force" "Continue on error (ignore table failures)" "off" \
+    "create_db" "Create database if it does not exist" "off" \
     3>&1 1>&2 2>&3)
 
   if [ $? -ne 0 ]; then
@@ -631,7 +631,7 @@ perform_load() {
 
   LOAD_FORCE="false"
   CREATE_DB="false"
-  echo "$LOAD_OPTIONS" | grep -q "force"     && LOAD_FORCE="true"
+  echo "$LOAD_OPTIONS" | grep -q "force" && LOAD_FORCE="true"
   echo "$LOAD_OPTIONS" | grep -q "create_db" && CREATE_DB="true"
 
   clear
@@ -682,8 +682,8 @@ perform_migrate() {
   MIGRATE_OPTIONS=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
     --title "Import Options" \
     --checklist "Select options for the import:" 10 65 2 \
-    "force"     "Continue on error (ignore table failures)" "off" \
-    "create_db" "Create database if it does not exist"      "off" \
+    "force" "Continue on error (ignore table failures)" "off" \
+    "create_db" "Create database if it does not exist" "off" \
     3>&1 1>&2 2>&3)
 
   if [ $? -ne 0 ]; then
@@ -692,7 +692,7 @@ perform_migrate() {
 
   MIGRATE_FORCE="false"
   MIGRATE_CREATE_DB="false"
-  echo "$MIGRATE_OPTIONS" | grep -q "force"     && MIGRATE_FORCE="true"
+  echo "$MIGRATE_OPTIONS" | grep -q "force" && MIGRATE_FORCE="true"
   echo "$MIGRATE_OPTIONS" | grep -q "create_db" && MIGRATE_CREATE_DB="true"
 
   $DIALOG --clear --backtitle "$PROJECT_NAME" \
@@ -705,19 +705,19 @@ perform_migrate() {
 
   clear
   log_header "MIGRATE - Complete Migration"
-  
+
   case "$DUMP_TYPE" in
-    structure)
-      log_info "🔄 Starting structure-only migration from $SRC_DB to $DST_DB..."
-      ;;
-    data)
-      log_info "🔄 Starting data-only migration from $SRC_DB to $DST_DB..."
-      ;;
-    both)
-      log_info "🔄 Starting full migration from $SRC_DB to $DST_DB..."
-      ;;
+  structure)
+    log_info "🔄 Starting structure-only migration from $SRC_DB to $DST_DB..."
+    ;;
+  data)
+    log_info "🔄 Starting data-only migration from $SRC_DB to $DST_DB..."
+    ;;
+  both)
+    log_info "🔄 Starting full migration from $SRC_DB to $DST_DB..."
+    ;;
   esac
-  
+
   ensure_docker_network "$DOCKER_NETWORK"
 
   DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB" "$DUMP_TYPE" "$SRC_HOST")
