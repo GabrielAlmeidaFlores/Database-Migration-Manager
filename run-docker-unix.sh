@@ -62,6 +62,7 @@ docker run -it --rm \
     --name "$CONTAINER_NAME" \
     -e LANG=C.UTF-8 \
     -e LC_ALL=C.UTF-8 \
+    -e RUNNING_IN_DOCKER=true \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "$SCRIPT_DIR/.config:/app/.config" \
     --network host \
