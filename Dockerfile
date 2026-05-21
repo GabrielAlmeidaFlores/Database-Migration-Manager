@@ -1,6 +1,6 @@
 FROM debian:bullseye-slim
 
-LABEL version="1.8.1"
+LABEL version="1.9.0"
 LABEL description="Database Migration Manager - Docker Mode"
 
 ENV LANG=C.UTF-8 \

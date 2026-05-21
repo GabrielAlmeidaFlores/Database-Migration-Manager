@@ -32,7 +32,7 @@ if [ ! -f "$DUMP_FILE" ]; then
 fi
 
 if [ "$CREATE_DB" = "true" ]; then
-    log_info "🗄️  Creating database if not exists: $DST_DB"
+    log_info "Creating database if not exists: $DST_DB"
     docker run --rm \
         --network host \
         -e MYSQL_PWD="$DST_PASS" \
@@ -53,7 +53,7 @@ log_progress "Importing into $DST_DB on $DST_HOST:$DST_PORT..."
 FORCE_FLAG=""
 if [ "$FORCE" = "true" ]; then
     FORCE_FLAG="--force"
-    log_info "⚠️  Force mode enabled: errors will be ignored."
+    log_info "Force mode enabled: errors will be ignored."
 fi
 
 cat "$DUMP_FILE" | docker run --rm -i \

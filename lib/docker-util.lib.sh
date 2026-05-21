@@ -16,7 +16,7 @@ check_image_version() {
     if docker_image_exists "$IMAGE_NAME"; then
         IMAGE_VERSION=$(docker inspect --format='{{index .Config.Labels "version"}}' "$IMAGE_NAME" 2>/dev/null)
         if [ "$IMAGE_VERSION" != "$EXPECTED_VERSION" ]; then
-            log_warning "⚠️  Image version mismatch!"
+            log_warning "Image version mismatch!"
             log_info "Current: ${IMAGE_VERSION:-unknown} | Expected: $EXPECTED_VERSION"
             log_info "Rebuilding image with latest changes..."
             docker build -t "$IMAGE_NAME" "$PROJECT_ROOT"

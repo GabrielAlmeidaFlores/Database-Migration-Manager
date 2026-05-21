@@ -1,6 +1,6 @@
 # Database Migration Manager
 
-**Version: 1.8.1**
+**Version: 1.9.0**
 
 ## Overview
 
@@ -283,6 +283,9 @@ docker volume rm db-migration-dumps
 
 ## Changelog
 
+### Version 1.9.0
+- **Removed**: All emojis from TUI dialog menus and log output for cleaner, more compatible terminal display
+
 ### Version 1.6.0
 - **New Feature**: Dump type selection for MySQL and PostgreSQL
   - Choose between structure only, data only, or both before dumping
@@ -374,4 +377,4 @@ For issues, questions, or feature requests:
 
 ---
 
-**Happy Migrating! 🚀**
+**Happy Migrating!**

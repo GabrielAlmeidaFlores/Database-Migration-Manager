@@ -32,7 +32,7 @@ if [ ! -f "$DUMP_FILE" ]; then
 fi
 
 if [ "$CREATE_DB" = "true" ]; then
-    log_info "🗄️  Creating database if not exists: $DST_DB"
+    log_info "Creating database if not exists: $DST_DB"
     DB_EXISTS=$(docker run --rm \
         --network host \
         -e PGPASSWORD="$DST_PASS" \
@@ -67,7 +67,7 @@ log_progress "Importing (pg_restore) into $DST_DB on $DST_HOST:$DST_PORT..."
 EXIT_ON_ERROR_FLAG="-e"
 if [ "$FORCE" = "true" ]; then
     EXIT_ON_ERROR_FLAG=""
-    log_info "⚠️  Force mode enabled: errors will be ignored."
+    log_info "Force mode enabled: errors will be ignored."
 fi
 
 cat "$DUMP_FILE" | docker run --rm -i \

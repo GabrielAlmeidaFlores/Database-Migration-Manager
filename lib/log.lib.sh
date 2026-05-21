@@ -15,27 +15,27 @@ export MAGENTA='\033[0;35m'
 export NC='\033[0m'
 
 log_info() {
-    echo -e "${BLUE}ℹ️  $*${NC}"
+    echo -e "${BLUE}[INFO] $*${NC}"
 }
 
 log_success() {
-    echo -e "${GREEN}✅ $*${NC}"
+    echo -e "${GREEN}[OK] $*${NC}"
 }
 
 log_error() {
-    echo -e "${RED}❌ $*${NC}"
+    echo -e "${RED}[ERROR] $*${NC}"
 }
 
 log_warning() {
-    echo -e "${YELLOW}⚠️  $*${NC}"
+    echo -e "${YELLOW}[WARN] $*${NC}"
 }
 
 log_step() {
-    echo -e "${CYAN}🔹 $*${NC}"
+    echo -e "${CYAN}[STEP] $*${NC}"
 }
 
 log_progress() {
-    echo -e "${MAGENTA}⏳ $*${NC}"
+    echo -e "${MAGENTA}[...] $*${NC}"
 }
 
 log_header() {

@@ -112,13 +112,13 @@ main_menu() {
     CHOICE=$($DIALOG --clear --backtitle "$PROJECT_NAME v$VERSION" \
       --title "Main Menu" \
       --menu "Choose an operation:" 17 60 7 \
-      1 "🔧 Configure Database" \
-      2 "💾 Dump (Export)" \
-      3 "📥 Load (Import)" \
-      4 "🔄 Migrate (Dump + Load)" \
-      5 "📦 Manage Dumps" \
-      6 "📝 View Configuration" \
-      7 "🚪 Exit" \
+      1 "Configure Database" \
+      2 "Dump (Export)" \
+      3 "Load (Import)" \
+      4 "Migrate (Dump + Load)" \
+      5 "Manage Dumps" \
+      6 "View Configuration" \
+      7 "Exit" \
       3>&1 1>&2 2>&3)
 
     case $CHOICE in
@@ -144,12 +144,12 @@ configure_database() {
     CONFIG_MENU=$($DIALOG --clear --backtitle "$PROJECT_NAME" \
       --title "Configuration" \
       --menu "What do you want to configure?" 15 65 6 \
-      1 "🔗 Database Type (Current: ${DB_TYPE:-Not configured})" \
-      2 "📤 SOURCE Configuration" \
-      3 "📥 DESTINATION Configuration" \
-      4 "✅ Complete Setup (Step by Step)" \
-      5 "📝 View Current Configuration" \
-      6 "🔙 Back to Main Menu" \
+      1 "Database Type (Current: ${DB_TYPE:-Not configured})" \
+      2 "SOURCE Configuration" \
+      3 "DESTINATION Configuration" \
+      4 "Complete Setup (Step by Step)" \
+      5 "View Current Configuration" \
+      6 "Back to Main Menu" \
       3>&1 1>&2 2>&3)
 
     case $CONFIG_MENU in
@@ -317,7 +317,7 @@ configure_full() {
   save_config
 
   $DIALOG --clear --backtitle "$PROJECT_NAME" \
-    --title "✅ Complete Setup" \
+    --title "Complete Setup" \
     --msgbox "All settings saved!\n\nType: $DB_TYPE\n\nSource: $SRC_HOST:$SRC_PORT/$SRC_DB\nDestination: $DST_HOST:$DST_PORT/$DST_DB\n\nDumps: $DUMP_DIR (auto-named)" 14 70
 }
 
@@ -342,11 +342,11 @@ manage_dumps() {
     DUMP_ACTION=$($DIALOG --clear --backtitle "$PROJECT_NAME v$VERSION" \
       --title "Manage Dumps" \
       --menu "Dumps: $DUMP_COUNT files ($DUMP_SIZE total)\nLocation: $DUMP_DIR" 16 70 5 \
-      1 "📋 List All Dumps" \
-      2 "📦 Export Dumps to Host" \
-      3 "🗑️  Delete Dump File" \
-      4 "ℹ️  Volume Information" \
-      5 "🔙 Back to Main Menu" \
+      1 "List All Dumps" \
+      2 "Export Dumps to Host" \
+      3 "Delete Dump File" \
+      4 "Volume Information" \
+      5 "Back to Main Menu" \
       3>&1 1>&2 2>&3)
 
     case $DUMP_ACTION in
@@ -411,25 +411,25 @@ export_dumps() {
 
   clear
   log_header "Export Dumps to Host"
-  log_info "📦 Exporting dumps from Docker volume to host..."
-  log_info "🎯 Target: $EXPORT_PATH"
+  log_info "Exporting dumps from Docker volume to host..."
+  log_info "Target: $EXPORT_PATH"
 
   case $EXPORT_TYPE in
   1)
     log_progress "Copying files..."
     if docker run --rm -v db-migration-dumps:/source -v "$EXPORT_PATH:/target" alpine sh -c 'mkdir -p /target && cp -v /source/*.txt /source/*.bacpac /target/ 2>/dev/null || cp -v /source/*.txt /target/'; then
-      log_success "✅ Files exported successfully to: $EXPORT_PATH"
+      log_success "Files exported successfully to: $EXPORT_PATH"
     else
-      log_error "❌ Export failed. Make sure the target directory exists and is accessible."
+      log_error "Export failed. Make sure the target directory exists and is accessible."
     fi
     ;;
   2)
     ARCHIVE_NAME="dumps-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
     log_progress "Creating archive: $ARCHIVE_NAME..."
     if docker run --rm -v db-migration-dumps:/dumps -v "$EXPORT_PATH:/backup" alpine tar czf "/backup/$ARCHIVE_NAME" -C /dumps .; then
-      log_success "✅ Archive created: $EXPORT_PATH/$ARCHIVE_NAME"
+      log_success "Archive created: $EXPORT_PATH/$ARCHIVE_NAME"
     else
-      log_error "❌ Archive creation failed. Make sure the target directory exists and is accessible."
+      log_error "Archive creation failed. Make sure the target directory exists and is accessible."
     fi
     ;;
   esac
@@ -540,13 +540,13 @@ perform_dump() {
 
   case "$DUMP_TYPE" in
   structure)
-    log_info "🔄 Starting structure-only dump of $SRC_DB..."
+    log_info "Starting structure-only dump of $SRC_DB..."
     ;;
   data)
-    log_info "🔄 Starting data-only dump of $SRC_DB..."
+    log_info "Starting data-only dump of $SRC_DB..."
     ;;
   both)
-    log_info "🔄 Starting full dump of $SRC_DB..."
+    log_info "Starting full dump of $SRC_DB..."
     ;;
   esac
 
@@ -554,7 +554,7 @@ perform_dump() {
 
   DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB" "$DUMP_TYPE" "$SRC_HOST")
   DUMP_FILE="$DUMP_DIR/$DUMP_FILENAME"
-  log_info "📄 File: $DUMP_FILENAME"
+  log_info "File: $DUMP_FILENAME"
 
   case $DB_TYPE in
   mysql)
@@ -636,8 +636,8 @@ perform_load() {
 
   clear
   log_header "LOAD - Importing Database"
-  log_info "📥 Starting load to $DST_DB..."
-  log_info "📄 File: $(basename "$SELECTED_DUMP")"
+  log_info "Starting load to $DST_DB..."
+  log_info "File: $(basename "$SELECTED_DUMP")"
   ensure_docker_network "$DOCKER_NETWORK"
 
   case $DB_TYPE in
@@ -708,13 +708,13 @@ perform_migrate() {
 
   case "$DUMP_TYPE" in
   structure)
-    log_info "🔄 Starting structure-only migration from $SRC_DB to $DST_DB..."
+    log_info "Starting structure-only migration from $SRC_DB to $DST_DB..."
     ;;
   data)
-    log_info "🔄 Starting data-only migration from $SRC_DB to $DST_DB..."
+    log_info "Starting data-only migration from $SRC_DB to $DST_DB..."
     ;;
   both)
-    log_info "🔄 Starting full migration from $SRC_DB to $DST_DB..."
+    log_info "Starting full migration from $SRC_DB to $DST_DB..."
     ;;
   esac
 
@@ -722,7 +722,7 @@ perform_migrate() {
 
   DUMP_FILENAME=$(generate_dump_filename "$DB_TYPE" "$SRC_DB" "$DUMP_TYPE" "$SRC_HOST")
   DUMP_FILE="$DUMP_DIR/$DUMP_FILENAME"
-  log_info "📄 File: $DUMP_FILENAME"
+  log_info "File: $DUMP_FILENAME"
 
   log_step "Step 1/2: Dump..."
   case $DB_TYPE in
