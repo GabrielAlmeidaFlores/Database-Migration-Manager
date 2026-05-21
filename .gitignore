@@ -1,0 +1,15 @@
+# Arquivo de configuração com senhas
+.config
+
+# Backups e dumps
+*.sql
+*.dump
+*.bak
+*.backup
+
+# Logs
+*.log
+
+# Temporários
+*.tmp
+*.temp
