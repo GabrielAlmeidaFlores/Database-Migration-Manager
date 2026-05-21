@@ -19,7 +19,12 @@ log_error() { echo -e "${RED}❌ $*${NC}"; }
 log_progress() { echo -e "${YELLOW}⏳ $*${NC}"; }
 
 DUMP_DIR="$(dirname "$DUMP_FILE")"
-DUMP_BASENAME="$(basename "$DUMP_FILE")"
+
+if [ "$DUMP_DIR" != "/dumps" ]; then
+    log_error "Dump directory must be /dumps (configured: $DUMP_DIR)"
+    log_info "When running in Docker, dumps must go to the Docker volume"
+    exit 1
+fi
 
 if [ ! -d "$DUMP_DIR" ]; then
     log_error "Dump directory does not exist: $DUMP_DIR"
@@ -28,38 +33,20 @@ fi
 
 log_progress "Dumping $SRC_DB from $SRC_HOST:$SRC_PORT..."
 
-if [ -n "$RUNNING_IN_DOCKER" ]; then
-    docker run --rm \
-        --network host \
-        -e MYSQL_PWD="$SRC_PASS" \
-        mysql:8.0 \
-        sh -c "mysqldump \
-        -h $SRC_HOST \
-        -P $SRC_PORT \
-        -u $SRC_USER \
-        --verbose \
-        --single-transaction \
-        --routines \
-        --triggers \
-        --events \
-        $SRC_DB" > "$DUMP_FILE"
-else
-    docker run --rm \
-        --network host \
-        -e MYSQL_PWD="$SRC_PASS" \
-        -v "$DUMP_DIR:/backup" \
-        mysql:8.0 \
-        sh -c "mysqldump \
-        -h $SRC_HOST \
-        -P $SRC_PORT \
-        -u $SRC_USER \
-        --verbose \
-        --single-transaction \
-        --routines \
-        --triggers \
-        --events \
-        $SRC_DB > /backup/$DUMP_BASENAME"
-fi
+docker run --rm \
+    --network host \
+    -e MYSQL_PWD="$SRC_PASS" \
+    mysql:8.0 \
+    sh -c "mysqldump \
+    -h $SRC_HOST \
+    -P $SRC_PORT \
+    -u $SRC_USER \
+    --verbose \
+    --single-transaction \
+    --routines \
+    --triggers \
+    --events \
+    $SRC_DB" > "$DUMP_FILE"
 
 if [ $? -ne 0 ]; then
     log_error "Dump failed."

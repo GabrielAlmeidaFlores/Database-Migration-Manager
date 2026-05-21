@@ -45,7 +45,6 @@ check_dialog() {
 }
 
 generate_dump_filename() {
-generate_dump_filename() {
     local db_type="$1"
     local timestamp=$(date +%Y%m%d-%H%M%S)
     echo "${db_type}-${timestamp}.txt"
@@ -72,6 +71,10 @@ EOF
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
+        if [ "$DUMP_DIR" != "/dumps" ]; then
+            DUMP_DIR="/dumps"
+            save_config
+        fi
         return 0
     fi
     return 1
@@ -222,21 +225,12 @@ configure_destination() {
 }
 
 configure_dump_file() {
-    DUMP_DIR=$($DIALOG --clear --backtitle "DB Migration Manager" \
-        --title "Dump Directory" \
-        --inputbox "Directory where dump files will be saved:\n\nFilename will be auto-generated as:\n<db-engine>-<timestamp>.txt" 12 70 "${DUMP_DIR:-$HOME/Downloads}" \
-        3>&1 1>&2 2>&3)
-
-    if [ $? -ne 0 ]; then
-        return
-    fi
-    
-    mkdir -p "$DUMP_DIR" 2>/dev/null
-    
-    save_config
     $DIALOG --clear --backtitle "DB Migration Manager" \
-        --title "Success" \
-        --msgbox "Dump directory configured:\n\n$DUMP_DIR\n\nFiles will be named: <db-engine>-<timestamp>.dump" 10 70
+        --title "Dump Directory" \
+        --msgbox "Dump directory is fixed to: /dumps\n\nThis is the Docker volume where all dumps are stored.\nFiles are auto-named: <db-engine>-<timestamp>.txt" 10 70
+    
+    DUMP_DIR="/dumps"
+    save_config
 }
 
 configure_full() {

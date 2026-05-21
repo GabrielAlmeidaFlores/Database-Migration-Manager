@@ -19,7 +19,12 @@ log_error() { echo -e "${RED}❌ $*${NC}"; }
 log_progress() { echo -e "${YELLOW}⏳ $*${NC}"; }
 
 DUMP_DIR="$(dirname "$DUMP_FILE")"
-DUMP_BASENAME="$(basename "$DUMP_FILE")"
+
+if [ "$DUMP_DIR" != "/dumps" ]; then
+    log_error "Dump directory must be /dumps (configured: $DUMP_DIR)"
+    log_info "When running in Docker, dumps must go to the Docker volume"
+    exit 1
+fi
 
 if [ ! -d "$DUMP_DIR" ]; then
     log_error "Dump directory does not exist: $DUMP_DIR"
@@ -28,33 +33,17 @@ fi
 
 log_progress "Dumping $SRC_DB from $SRC_HOST:$SRC_PORT..."
 
-if [ -n "$RUNNING_IN_DOCKER" ]; then
-    docker run --rm \
-        --network host \
-        -e PGPASSWORD="$SRC_PASS" \
-        postgres:16-alpine \
-        pg_dump \
-        -h "$SRC_HOST" \
-        -p "$SRC_PORT" \
-        -U "$SRC_USER" \
-        -d "$SRC_DB" \
-        -F c \
-        --verbose > "$DUMP_FILE"
-else
-    docker run --rm \
-        --network host \
-        -e PGPASSWORD="$SRC_PASS" \
-        -v "$DUMP_DIR:/backup" \
-        postgres:16-alpine \
-        pg_dump \
-        -h "$SRC_HOST" \
-        -p "$SRC_PORT" \
-        -U "$SRC_USER" \
-        -d "$SRC_DB" \
-        -F c \
-        --verbose \
-        -f "/backup/$DUMP_BASENAME"
-fi
+docker run --rm \
+    --network host \
+    -e PGPASSWORD="$SRC_PASS" \
+    postgres:16-alpine \
+    pg_dump \
+    -h "$SRC_HOST" \
+    -p "$SRC_PORT" \
+    -U "$SRC_USER" \
+    -d "$SRC_DB" \
+    -F c \
+    --verbose > "$DUMP_FILE"
 
 if [ $? -ne 0 ]; then
     log_error "Dump failed."
