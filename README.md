@@ -4,13 +4,13 @@
 
 ## Overview
 
-<img src="https://raw.githubusercontent.com/GabrielAlmeidaFlores/GabrielAlmeidaFlores/refs/heads/main/assets/Database-Migration-Manager/overview.gif"/>
-
 **Database Migration Manager** is a containerized, interactive database migration tool designed to simplify the process of moving data between database servers. Whether you're migrating between different hosts, creating database backups, or replicating databases for testing environments, this tool provides a unified, user-friendly interface for managing migrations across multiple database engines.
 
 Built entirely with Bash and Dialog, the tool runs inside a Docker container with a text-based user interface (TUI), eliminating the need for complex installations or dependencies on your host system. All database operations are executed using official Docker images (MySQL, PostgreSQL, SQL Server), ensuring consistency and reliability across different environments.
 
 The tool handles the complete migration workflow: connecting to source and destination databases, exporting data in appropriate formats, and importing it safely with proper validation at each step. All dump files are stored in a persistent Docker volume, ensuring your data remains safe even after container restarts.
+
+<img src="https://raw.githubusercontent.com/GabrielAlmeidaFlores/GabrielAlmeidaFlores/refs/heads/main/assets/Database-Migration-Manager/overview.gif"/>
 
 ## Key Features
 
