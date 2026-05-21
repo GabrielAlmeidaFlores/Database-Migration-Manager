@@ -7,41 +7,37 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 IMAGE_NAME="database-migration-manager"
 CONTAINER_NAME="database-migration-manager"
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# Load utility functions
+source "$SCRIPT_DIR/lib/log.lib.sh"
 
-echo -e "${BLUE}🗄️  DB Migration Manager - Docker Mode${NC}"
+log_header "DB Migration Manager - Docker Mode"
 echo ""
 
 # Check if Docker is installed
-if ! command -v docker &> /dev/null; then
-    echo -e "${YELLOW}⚠️  Docker is not installed!${NC}"
+if ! check_docker; then
     echo "Please install Docker Desktop from: https://www.docker.com/products/docker-desktop"
     exit 1
 fi
 
 # Check if image exists, if not build it
-if ! docker image inspect "$IMAGE_NAME" &> /dev/null; then
-    echo -e "${BLUE}📦 Building Docker image (first time only)...${NC}"
+if ! docker_image_exists "$IMAGE_NAME"; then
+    log_info "Building Docker image (first time only)..."
     docker build -t "$IMAGE_NAME" "$SCRIPT_DIR"
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Image built successfully!${NC}"
+        log_success "Image built successfully!"
     else
-        echo -e "${YELLOW}❌ Failed to build image${NC}"
+        log_error "Failed to build image"
         exit 1
     fi
 else
-    echo -e "${GREEN}✅ Docker image found${NC}"
+    log_success "Docker image found"
 fi
 
-echo -e "${BLUE}🚀 Starting DB Migration Manager...${NC}"
+log_info "Starting DB Migration Manager..."
 echo ""
 
 # Create dumps directory if it doesn't exist
-mkdir -p "$SCRIPT_DIR/dumps"
+ensure_dir "$SCRIPT_DIR/dumps"
 
 # Run the container with:
 # - Interactive terminal with UTF-8 support
@@ -60,4 +56,4 @@ docker run -it --rm \
     "$IMAGE_NAME"
 
 echo ""
-echo -e "${GREEN}✅ Session ended${NC}"
+log_success "Session ended"
