@@ -6,7 +6,7 @@ CONTAINER_NAME="database-migration-manager"
 
 source "$SCRIPT_DIR/lib/log.lib.sh"
 
-log_header "DB Migration Manager - Docker Mode (Windows)"
+log_header "DB Migration Manager - Windows"
 echo ""
 
 if ! check_docker; then

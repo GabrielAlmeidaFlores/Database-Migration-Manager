@@ -1,5 +1,7 @@
 # Database Migration Manager
 
+**Version: 1.0.0**
+
 ## Overview
 
 **Database Migration Manager** is a containerized, interactive database migration tool designed to simplify the process of moving data between database servers. Whether you're migrating between different hosts, creating database backups, or replicating databases for testing environments, this tool provides a unified, user-friendly interface for managing migrations across multiple database engines.
@@ -138,22 +140,35 @@ Validates database credentials without performing any operations:
 
 ### 5. CONFIG - Configuration
 
-Manages global settings:
+Manages database connection settings:
 
-- **Dump Directory**: Fixed to `/dumps` (Docker volume mount)
-- View current configuration
-- Reset to defaults if needed
+- **Database Type**: Choose MySQL, PostgreSQL, or SQL Server
+- **SOURCE Configuration**: Connection details for source database
+- **DESTINATION Configuration**: Connection details for destination database
+- **Complete Setup**: Step-by-step wizard for all settings
+- **View Configuration**: Display current settings
+
+**Note**: Dump files are automatically stored in `/dumps` (fixed Docker volume location) and cannot be changed. Files are auto-named as `<db-engine>-<timestamp>.txt`.
 
 ## Configuration File
 
 Settings are stored in `.config` file (automatically created):
 
 ```bash
-DUMP_DIR=/dumps
-# Additional settings as needed
+DB_TYPE=mysql
+SRC_HOST=localhost
+SRC_PORT=3306
+SRC_USER=root
+SRC_PASS=password
+SRC_DB=mydb
+DST_HOST=localhost
+DST_PORT=3306
+DST_USER=root
+DST_PASS=password
+DST_DB=mydb_copy
 ```
 
-**Note**: `DUMP_DIR` is automatically corrected to `/dumps` to ensure data persists in the Docker volume.
+**Important**: The dump directory is **always** `/dumps` and is not stored in the configuration file. This is the Docker volume mount point and ensures all dumps persist in the `db-migration-dumps` volume.
 
 ## Dump File Formats
 

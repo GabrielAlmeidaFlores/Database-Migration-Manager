@@ -6,7 +6,7 @@ CONTAINER_NAME="database-migration-manager"
 
 source "$SCRIPT_DIR/lib/log.lib.sh"
 
-log_header "DB Migration Manager - Docker Mode (Unix/Linux)"
+log_header "DB Migration Manager - Unix"
 echo ""
 
 if ! check_docker; then
