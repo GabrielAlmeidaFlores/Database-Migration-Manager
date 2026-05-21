@@ -46,6 +46,17 @@ check_dialog() {
     fi
 }
 
+list_all_dump_files() {
+    {
+        ls -t "$DUMP_DIR"/*.txt 2>/dev/null
+        ls -t "$DUMP_DIR"/*.bacpac 2>/dev/null
+    } | sort -r
+}
+
+count_dump_files() {
+    list_all_dump_files | wc -l
+}
+
 generate_dump_filename() {
     local db_type="$1"
     local timestamp=$(date +%Y%m%d-%H%M%S)
@@ -308,7 +319,7 @@ view_config() {
 
 manage_dumps() {
     while true; do
-        DUMP_COUNT=$(ls -1 "$DUMP_DIR"/*.txt 2>/dev/null | wc -l)
+        DUMP_COUNT=$(count_dump_files)
         DUMP_SIZE=$(du -sh "$DUMP_DIR" 2>/dev/null | cut -f1)
         
         DUMP_ACTION=$($DIALOG --clear --backtitle "DB Migration Manager v$VERSION" \
@@ -333,7 +344,7 @@ manage_dumps() {
 }
 
 list_dumps() {
-    if [ ! -d "$DUMP_DIR" ] || [ -z "$(ls -A "$DUMP_DIR"/*.txt 2>/dev/null)" ]; then
+    if [ ! -d "$DUMP_DIR" ] || [ $(count_dump_files) -eq 0 ]; then
         $DIALOG --clear --backtitle "DB Migration Manager v$VERSION" \
             --title "Dump Files" \
             --msgbox "No dump files found in $DUMP_DIR" 6 50
@@ -342,11 +353,17 @@ list_dumps() {
     
     DUMP_LIST=""
     while IFS= read -r file; do
+        if [ -z "$file" ]; then continue; fi
         filename=$(basename "$file")
         filesize=$(du -h "$file" 2>/dev/null | cut -f1)
         filedate=$(stat -c '%y' "$file" 2>/dev/null | cut -d' ' -f1,2 | cut -d'.' -f1 || stat -f '%Sm' -t '%Y-%m-%d %H:%M:%S' "$file" 2>/dev/null)
-        DUMP_LIST="$DUMP_LIST$filename\n  Size: $filesize\n  Date: $filedate\n\n"
-    done < <(ls -t "$DUMP_DIR"/*.txt 2>/dev/null)
+        
+        if [[ "$filename" == *.bacpac ]]; then
+            DUMP_LIST="$DUMP_LIST$filename (BACPAC)\n  Size: $filesize\n  Date: $filedate\n\n"
+        else
+            DUMP_LIST="$DUMP_LIST$filename\n  Size: $filesize\n  Date: $filedate\n\n"
+        fi
+    done < <(list_all_dump_files)
     
     $DIALOG --clear --backtitle "DB Migration Manager v$VERSION" \
         --title "Available Dump Files" \
@@ -405,7 +422,7 @@ export_dumps() {
 }
 
 delete_dump() {
-    if [ ! -d "$DUMP_DIR" ] || [ -z "$(ls -A "$DUMP_DIR"/*.txt 2>/dev/null)" ]; then
+    if [ ! -d "$DUMP_DIR" ] || [ $(count_dump_files) -eq 0 ]; then
         $DIALOG --clear --backtitle "DB Migration Manager v$VERSION" \
             --title "Error" \
             --msgbox "No dump files found in $DUMP_DIR" 6 50
@@ -414,10 +431,16 @@ delete_dump() {
     
     MENU_OPTIONS=()
     while IFS= read -r file; do
+        if [ -z "$file" ]; then continue; fi
         filename=$(basename "$file")
         filesize=$(du -h "$file" 2>/dev/null | cut -f1)
-        MENU_OPTIONS+=("$file" "$filename ($filesize)")
-    done < <(ls -t "$DUMP_DIR"/*.txt 2>/dev/null)
+        
+        if [[ "$filename" == *.bacpac ]]; then
+            MENU_OPTIONS+=("$file" "$filename ($filesize) [BACPAC]")
+        else
+            MENU_OPTIONS+=("$file" "$filename ($filesize)")
+        fi
+    done < <(list_all_dump_files)
     
     FILE_TO_DELETE=$($DIALOG --clear --backtitle "DB Migration Manager v$VERSION" \
         --title "Delete Dump File" \
@@ -456,7 +479,7 @@ volume_info() {
     INFO_TEXT="${INFO_TEXT}Volume Name: $VOLUME_NAME\n"
     INFO_TEXT="${INFO_TEXT}Mount Point: $DUMP_DIR\n"
     INFO_TEXT="${INFO_TEXT}Total Size: $(du -sh "$DUMP_DIR" 2>/dev/null | cut -f1)\n"
-    INFO_TEXT="${INFO_TEXT}File Count: $(ls -1 "$DUMP_DIR"/*.txt 2>/dev/null | wc -l) dumps\n\n"
+    INFO_TEXT="${INFO_TEXT}File Count: $(count_dump_files) dumps\n\n"
     INFO_TEXT="${INFO_TEXT}Commands to manage volume:\n\n"
     INFO_TEXT="${INFO_TEXT}• Inspect volume:\n"
     INFO_TEXT="${INFO_TEXT}  docker volume inspect $VOLUME_NAME\n\n"
